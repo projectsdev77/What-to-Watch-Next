@@ -11,18 +11,15 @@ export interface RecommendedTitle {
   overview: string | null;
   posterPath: string | null;
   voteAverage: number | null;
+  genreIds: number[];
   platforms: string[];
   matchPercent: number;
   why: string;
   watchUrl: string;
+  isWatchlisted: boolean;
 }
 
-export type TonightsPickResult =
-  | { status: "no-platforms" }
-  | { status: "empty-catalog" }
-  | { status: "nothing-available" }
-  | { status: "all-rated" }
-  | { status: "ok"; pick: RecommendedTitle; discover: RecommendedTitle[] };
+export type CandidateStatus = "no-platforms" | "empty-catalog" | "nothing-available" | "all-rated";
 
 interface CandidateRow {
   id: number;
@@ -39,19 +36,36 @@ interface ScoredCandidate {
   row: CandidateRow;
   score: number;
   topGenreIds: number[];
+  isWatchlisted: boolean;
 }
 
-const DISCOVER_SIZE = 6;
+interface CandidatePool {
+  scored: ScoredCandidate[];
+  platformsByTitleId: Map<number, Set<string>>;
+  likedTitlesByGenre: Map<number, string[]>;
+  hasSignal: boolean;
+  allPlatforms: string[];
+  allGenres: { id: number; name: string }[];
+}
+
+// A watchlisted title should be *favored*, not hidden — this is a flat
+// bonus on top of its genre-match score, big enough to outrank most
+// organic matches without being an unconditional override.
+const WATCHLIST_BONUS = 3;
 const MAX_CANDIDATES = 300; // defensive cap for the .in() query at MVP scale
 
-export async function getTonightsPick(userId: string): Promise<TonightsPickResult> {
-  const supabase = await createClient();
-
+async function getCandidatePool(
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<CandidatePool | { status: CandidateStatus }> {
   const [{ data: userPlatforms }, { data: tasteProfile }, { data: feedbackRows }, { count: titleCount }] =
     await Promise.all([
       supabase.from("user_platforms").select("platform_name").eq("user_id", userId),
       supabase.from("user_taste_profile").select("genre_weights").eq("user_id", userId).maybeSingle(),
-      supabase.from("user_title_feedback").select("title_id, status, titles(id, title, genre_ids)").eq("user_id", userId),
+      supabase
+        .from("user_title_feedback")
+        .select("title_id, status, titles(id, title, genre_ids)")
+        .eq("user_id", userId),
       supabase.from("titles").select("*", { count: "exact", head: true }),
     ]);
 
@@ -62,7 +76,17 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
   const genreWeights: Record<string, number> = (tasteProfile?.genre_weights as Record<string, number>) ?? {};
   const hasSignal = Object.values(genreWeights).some((w) => w !== 0);
 
-  const excludedIds = new Set((feedbackRows ?? []).map((r) => r.title_id as number));
+  // Anything already judged (liked/disliked/watched/skipped) is excluded
+  // from future picks. Watchlisted titles are the one exception: the
+  // user has said they *want* to watch it, so it stays a candidate and
+  // gets a scoring bonus instead — see toRecommended below.
+  const excludedIds = new Set<number>();
+  const watchlistedIds = new Set<number>();
+  for (const row of feedbackRows ?? []) {
+    const titleId = row.title_id as number;
+    if (row.status === "watchlisted") watchlistedIds.add(titleId);
+    else excludedIds.add(titleId);
+  }
 
   const { data: availabilityRows } = await supabase
     .from("title_availability")
@@ -77,7 +101,6 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
     set.add(row.platform_name as string);
     platformsByTitleId.set(titleId, set);
   }
-
   if (platformsByTitleId.size === 0) return { status: "nothing-available" };
 
   const candidateIds = [...platformsByTitleId.keys()].filter((id) => !excludedIds.has(id)).slice(0, MAX_CANDIDATES);
@@ -87,7 +110,6 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
     .from("titles")
     .select("id, tmdb_id, media_type, title, overview, poster_path, genre_ids, vote_average")
     .in("id", candidateIds);
-
   if (!candidateRows || candidateRows.length === 0) return { status: "all-rated" };
 
   // Genre -> names of liked titles sharing that genre, for the "why" copy.
@@ -103,62 +125,134 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
     }
   }
 
+  const allGenreIds = new Set<number>();
   const scored: ScoredCandidate[] = (candidateRows as CandidateRow[]).map((row) => {
+    row.genre_ids.forEach((id) => allGenreIds.add(id));
+    const isWatchlisted = watchlistedIds.has(row.id);
+    const bonus = isWatchlisted ? WATCHLIST_BONUS : 0;
+
     if (!hasSignal) {
       // Cold start: no taste signal yet, rank by popularity instead.
-      return { row, score: row.vote_average ?? 0, topGenreIds: [] };
+      return { row, score: (row.vote_average ?? 0) + bonus, topGenreIds: [], isWatchlisted };
     }
     const weighted = row.genre_ids
       .map((genreId) => ({ genreId, weight: genreWeights[String(genreId)] ?? 0 }))
       .sort((a, b) => b.weight - a.weight);
-    const score = weighted.reduce((sum, g) => sum + g.weight, 0);
+    const score = weighted.reduce((sum, g) => sum + g.weight, 0) + bonus;
     const topGenreIds = weighted.filter((g) => g.weight > 0).map((g) => g.genreId);
-    return { row, score, topGenreIds };
+    return { row, score, topGenreIds, isWatchlisted };
   });
 
   scored.sort((a, b) => b.score - a.score || (b.row.vote_average ?? 0) - (a.row.vote_average ?? 0));
 
-  const scores = scored.map((c) => c.score);
+  return {
+    scored,
+    platformsByTitleId,
+    likedTitlesByGenre,
+    hasSignal,
+    allPlatforms: [...new Set(platformNames)].sort(),
+    allGenres: [...allGenreIds].map((id) => ({ id, name: genreName(id) })).sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
+function toRecommended(candidate: ScoredCandidate, pool: CandidatePool, min: number, max: number): RecommendedTitle {
+  const { row, score, topGenreIds, isWatchlisted } = candidate;
+  const matchPercent = max === min ? 90 : Math.round(60 + 39 * ((score - min) / (max - min)));
+
+  let why: string;
+  if (isWatchlisted) {
+    why = "On your watchlist — and it matches your taste.";
+  } else if (!pool.hasSignal) {
+    why = "Popular right now — rate a few more titles to get picks tailored to you.";
+  } else if (topGenreIds.length > 0) {
+    const primaryGenre = genreName(topGenreIds[0]);
+    const likedNames = (pool.likedTitlesByGenre.get(topGenreIds[0]) ?? []).slice(0, 2);
+    why =
+      likedNames.length > 0
+        ? `Because you liked ${likedNames.join(" and ")} — both ${primaryGenre}.`
+        : `Because you tend to enjoy ${primaryGenre} titles.`;
+  } else {
+    why = "Available on your platforms and well-reviewed — worth a look.";
+  }
+
+  return {
+    id: row.id,
+    tmdbId: row.tmdb_id,
+    mediaType: row.media_type,
+    title: row.title,
+    overview: row.overview,
+    posterPath: row.poster_path,
+    voteAverage: row.vote_average,
+    genreIds: row.genre_ids,
+    platforms: [...(pool.platformsByTitleId.get(row.id) ?? [])],
+    matchPercent,
+    why,
+    watchUrl: tmdbTitleUrl(row.media_type, row.tmdb_id),
+    isWatchlisted,
+  };
+}
+
+export type TonightsPickResult =
+  | { status: CandidateStatus }
+  | { status: "ok"; pick: RecommendedTitle; discover: RecommendedTitle[] };
+
+const DISCOVER_SIZE = 6;
+
+export async function getTonightsPick(userId: string): Promise<TonightsPickResult> {
+  const supabase = await createClient();
+  const pool = await getCandidatePool(userId, supabase);
+  if ("status" in pool) return pool;
+
+  const scores = pool.scored.map((c) => c.score);
   const min = Math.min(...scores);
   const max = Math.max(...scores);
 
-  function toRecommended(candidate: ScoredCandidate): RecommendedTitle {
-    const { row, score, topGenreIds } = candidate;
-    const matchPercent = max === min ? 90 : Math.round(60 + 39 * ((score - min) / (max - min)));
-
-    let why: string;
-    if (!hasSignal) {
-      why = "Popular right now — rate a few more titles to get picks tailored to you.";
-    } else if (topGenreIds.length > 0) {
-      const primaryGenre = genreName(topGenreIds[0]);
-      const likedNames = (likedTitlesByGenre.get(topGenreIds[0]) ?? []).slice(0, 2);
-      why =
-        likedNames.length > 0
-          ? `Because you liked ${likedNames.join(" and ")} — both ${primaryGenre}.`
-          : `Because you tend to enjoy ${primaryGenre} titles.`;
-    } else {
-      why = "Available on your platforms and well-reviewed — worth a look.";
-    }
-
-    return {
-      id: row.id,
-      tmdbId: row.tmdb_id,
-      mediaType: row.media_type,
-      title: row.title,
-      overview: row.overview,
-      posterPath: row.poster_path,
-      voteAverage: row.vote_average,
-      platforms: [...(platformsByTitleId.get(row.id) ?? [])],
-      matchPercent,
-      why,
-      watchUrl: tmdbTitleUrl(row.media_type, row.tmdb_id),
-    };
-  }
-
-  const [pick, ...rest] = scored;
+  const [pick, ...rest] = pool.scored;
   return {
     status: "ok",
-    pick: toRecommended(pick),
-    discover: rest.slice(0, DISCOVER_SIZE).map(toRecommended),
+    pick: toRecommended(pick, pool, min, max),
+    discover: rest.slice(0, DISCOVER_SIZE).map((c) => toRecommended(c, pool, min, max)),
+  };
+}
+
+export interface DiscoverListOptions {
+  platform?: string;
+  genreId?: number;
+  limit?: number;
+}
+
+export type DiscoverListResult =
+  | { status: CandidateStatus }
+  | {
+      status: "ok";
+      titles: RecommendedTitle[];
+      availablePlatforms: string[];
+      availableGenres: { id: number; name: string }[];
+    };
+
+const DEFAULT_DISCOVER_LIMIT = 30;
+
+export async function getDiscoverList(userId: string, options: DiscoverListOptions = {}): Promise<DiscoverListResult> {
+  const supabase = await createClient();
+  const pool = await getCandidatePool(userId, supabase);
+  if ("status" in pool) return pool;
+
+  const scores = pool.scored.map((c) => c.score);
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+
+  let filtered = pool.scored;
+  if (options.platform) {
+    filtered = filtered.filter((c) => pool.platformsByTitleId.get(c.row.id)?.has(options.platform!));
+  }
+  if (options.genreId !== undefined) {
+    filtered = filtered.filter((c) => c.row.genre_ids.includes(options.genreId!));
+  }
+
+  return {
+    status: "ok",
+    titles: filtered.slice(0, options.limit ?? DEFAULT_DISCOVER_LIMIT).map((c) => toRecommended(c, pool, min, max)),
+    availablePlatforms: pool.allPlatforms,
+    availableGenres: pool.allGenres,
   };
 }

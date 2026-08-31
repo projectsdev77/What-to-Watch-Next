@@ -48,6 +48,11 @@ async function seedTitle(mediaType: MediaType, summary: TmdbTitleSummary, admin:
     ...new Set(rawPlatforms.map(normalizeProviderName).filter((p): p is NonNullable<typeof p> => p !== null)),
   ];
 
+  const castNames = [...(details.credits?.cast ?? [])]
+    .sort((a, b) => a.order - b.order)
+    .slice(0, 5)
+    .map((c) => c.name);
+
   const { data: title, error: titleError } = await admin
     .from("titles")
     .upsert(
@@ -58,6 +63,7 @@ async function seedTitle(mediaType: MediaType, summary: TmdbTitleSummary, admin:
         overview: details.overview,
         poster_path: details.poster_path,
         genre_ids: details.genres.map((g) => g.id),
+        cast_names: castNames,
         vote_average: details.vote_average,
         release_date: details.release_date ?? details.first_air_date ?? null,
         cached_at: new Date().toISOString(),
