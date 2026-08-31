@@ -114,3 +114,8 @@ export async function getStreamingPlatforms(mediaType: MediaType, id: number, re
   const regionData = providers.results[region];
   return regionData?.flatrate?.map((p) => p.provider_name) ?? [];
 }
+
+/** Public TMDB page for a title — used as the "Watch Now" destination for v1 (its "Where to Watch" section links onward to the actual platform). */
+export function tmdbTitleUrl(mediaType: MediaType, tmdbId: number) {
+  return `https://www.themoviedb.org/${mediaType}/${tmdbId}`;
+}

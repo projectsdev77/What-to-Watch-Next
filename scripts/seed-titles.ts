@@ -16,6 +16,7 @@ import {
   type MediaType,
   type TmdbTitleSummary,
 } from "../src/lib/tmdb";
+import { normalizeProviderName, DEFAULT_REGION } from "../src/lib/platforms";
 
 const MEDIA_TYPES: MediaType[] = ["movie", "tv"];
 const PAGES_PER_MEDIA_TYPE = 3; // ~60 titles per media type, plenty of genre spread
@@ -39,7 +40,13 @@ async function collectPopular(mediaType: MediaType): Promise<TmdbTitleSummary[]>
 
 async function seedTitle(mediaType: MediaType, summary: TmdbTitleSummary, admin: ReturnType<typeof createAdminClient>) {
   const details = await getTitleDetails(mediaType, summary.id);
-  const platforms = await getStreamingPlatforms(mediaType, summary.id, "US");
+  const rawPlatforms = await getStreamingPlatforms(mediaType, summary.id, DEFAULT_REGION);
+  // Normalize TMDB's free-text provider names into our canonical
+  // platform list (see src/lib/platforms.ts) and drop anything that
+  // isn't one of the services users can pick at onboarding.
+  const platforms = [
+    ...new Set(rawPlatforms.map(normalizeProviderName).filter((p): p is NonNullable<typeof p> => p !== null)),
+  ];
 
   const { data: title, error: titleError } = await admin
     .from("titles")
@@ -70,7 +77,7 @@ async function seedTitle(mediaType: MediaType, summary: TmdbTitleSummary, admin:
   const { error: availabilityError } = await admin.from("title_availability").upsert(
     platforms.map((platformName) => ({
       title_id: title.id,
-      region: "US",
+      region: DEFAULT_REGION,
       platform_name: platformName,
       cached_at: new Date().toISOString(),
     })),
