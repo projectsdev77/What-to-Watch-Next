@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -27,6 +27,13 @@ export const metadata: Metadata = {
   description: "One confident recommendation, instead of an endless scroll.",
 };
 
+// This is a phone-in-hand, "what do I watch tonight" product — explicit
+// rather than relying on Next's default, so it's correct regardless.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const supabase = await createClient();
   const {
@@ -43,7 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <div className="flex flex-wrap items-center gap-5">
             <span className="font-semibold">What To Watch Next</span>
             {user && (
-              <nav className="flex gap-4 text-sm text-zinc-500">
+              <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
                 {NAV_LINKS.map((link) => (
                   <Link key={link.href} href={link.href} className="hover:text-foreground">
                     {link.label}
@@ -54,7 +61,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </div>
           {user && (
             <form action={signOutAction} className="flex items-center gap-3">
-              <span className="text-sm text-zinc-500">{user.email}</span>
+              <span className="hidden text-sm text-zinc-500 sm:inline">{user.email}</span>
               <button type="submit" className="text-sm underline">
                 Log out
               </button>

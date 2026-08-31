@@ -38,65 +38,88 @@ async function collectPopular(mediaType: MediaType): Promise<TmdbTitleSummary[]>
   return pages.flatMap((page) => page.results);
 }
 
-async function seedTitle(mediaType: MediaType, summary: TmdbTitleSummary, admin: ReturnType<typeof createAdminClient>) {
-  const details = await getTitleDetails(mediaType, summary.id);
-  const rawPlatforms = await getStreamingPlatforms(mediaType, summary.id, DEFAULT_REGION);
-  // Normalize TMDB's free-text provider names into our canonical
-  // platform list (see src/lib/platforms.ts) and drop anything that
-  // isn't one of the services users can pick at onboarding.
-  const platforms = [
-    ...new Set(rawPlatforms.map(normalizeProviderName).filter((p): p is NonNullable<typeof p> => p !== null)),
-  ];
+/**
+ * Seeds one title. Returns false (and logs) on any failure instead of
+ * throwing — TMDB is a live external API mid-run, and one flaky title
+ * (transient network error, an odd response shape) shouldn't abort the
+ * other ~100+ titles already in flight or already written.
+ */
+async function seedTitle(
+  mediaType: MediaType,
+  summary: TmdbTitleSummary,
+  admin: ReturnType<typeof createAdminClient>
+): Promise<boolean> {
+  try {
+    const details = await getTitleDetails(mediaType, summary.id);
+    const rawPlatforms = await getStreamingPlatforms(mediaType, summary.id, DEFAULT_REGION);
+    // Normalize TMDB's free-text provider names into our canonical
+    // platform list (see src/lib/platforms.ts) and drop anything that
+    // isn't one of the services users can pick at onboarding.
+    const platforms = [
+      ...new Set(rawPlatforms.map(normalizeProviderName).filter((p): p is NonNullable<typeof p> => p !== null)),
+    ];
 
-  const castNames = [...(details.credits?.cast ?? [])]
-    .sort((a, b) => a.order - b.order)
-    .slice(0, 5)
-    .map((c) => c.name);
+    const castNames = [...(details.credits?.cast ?? [])]
+      .sort((a, b) => a.order - b.order)
+      .slice(0, 5)
+      .map((c) => c.name);
 
-  const { data: title, error: titleError } = await admin
-    .from("titles")
-    .upsert(
-      {
-        tmdb_id: details.id,
-        media_type: mediaType,
-        title: details.title ?? details.name ?? "Untitled",
-        overview: details.overview,
-        poster_path: details.poster_path,
-        genre_ids: details.genres.map((g) => g.id),
-        cast_names: castNames,
-        vote_average: details.vote_average,
-        release_date: details.release_date ?? details.first_air_date ?? null,
+    const { data: title, error: titleError } = await admin
+      .from("titles")
+      .upsert(
+        {
+          tmdb_id: details.id,
+          media_type: mediaType,
+          title: details.title ?? details.name ?? "Untitled",
+          overview: details.overview,
+          poster_path: details.poster_path,
+          genre_ids: details.genres.map((g) => g.id),
+          cast_names: castNames,
+          vote_average: details.vote_average,
+          release_date: details.release_date ?? details.first_air_date ?? null,
+          cached_at: new Date().toISOString(),
+        },
+        { onConflict: "tmdb_id,media_type" }
+      )
+      .select("id")
+      .single();
+
+    if (titleError || !title) {
+      console.error(`Failed to upsert ${mediaType}/${details.id}:`, titleError?.message);
+      return false;
+    }
+
+    if (platforms.length === 0) return true;
+
+    const { error: availabilityError } = await admin.from("title_availability").upsert(
+      platforms.map((platformName) => ({
+        title_id: title.id,
+        region: DEFAULT_REGION,
+        platform_name: platformName,
         cached_at: new Date().toISOString(),
-      },
-      { onConflict: "tmdb_id,media_type" }
-    )
-    .select("id")
-    .single();
+      })),
+      { onConflict: "title_id,region,platform_name" }
+    );
 
-  if (titleError || !title) {
-    console.error(`Failed to upsert ${mediaType}/${details.id}:`, titleError?.message);
-    return;
-  }
+    if (availabilityError) {
+      console.error(`Failed to upsert availability for ${mediaType}/${details.id}:`, availabilityError.message);
+      return false;
+    }
 
-  if (platforms.length === 0) return;
-
-  const { error: availabilityError } = await admin.from("title_availability").upsert(
-    platforms.map((platformName) => ({
-      title_id: title.id,
-      region: DEFAULT_REGION,
-      platform_name: platformName,
-      cached_at: new Date().toISOString(),
-    })),
-    { onConflict: "title_id,region,platform_name" }
-  );
-
-  if (availabilityError) {
-    console.error(`Failed to upsert availability for ${mediaType}/${details.id}:`, availabilityError.message);
+    return true;
+  } catch (err) {
+    console.error(
+      `Skipping ${mediaType}/${summary.id} after error:`,
+      err instanceof Error ? err.message : err
+    );
+    return false;
   }
 }
 
 async function main() {
   const admin = createAdminClient();
+  let succeeded = 0;
+  let failed = 0;
 
   for (const mediaType of MEDIA_TYPES) {
     console.log(`Fetching popular ${mediaType} titles...`);
@@ -105,13 +128,15 @@ async function main() {
 
     let done = 0;
     await inBatches(summaries, BATCH_SIZE, async (summary) => {
-      await seedTitle(mediaType, summary, admin);
+      const ok = await seedTitle(mediaType, summary, admin);
+      if (ok) succeeded += 1;
+      else failed += 1;
       done += 1;
       if (done % 20 === 0) console.log(`  ${done}/${summaries.length} ${mediaType}`);
     });
   }
 
-  console.log("Done.");
+  console.log(`Done. ${succeeded} succeeded, ${failed} failed.`);
 }
 
 main().catch((err) => {

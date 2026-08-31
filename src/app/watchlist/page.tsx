@@ -73,15 +73,15 @@ export default async function WatchlistPage() {
                   />
                 )}
               </Link>
-              <div className="flex-1">
-                <Link href={`/title/${title.id}`} className="font-medium hover:underline">
+              <div className="min-w-0 flex-1">
+                <Link href={`/title/${title.id}`} className="truncate font-medium hover:underline block">
                   {title.title}
                 </Link>
-                <p className="text-xs text-zinc-500">
+                <p className="truncate text-xs text-zinc-500">
                   {(platformsByTitleId.get(title.id) ?? []).join(" · ") || "Not currently available on your platforms"}
                 </p>
               </div>
-              <form action={removeFeedbackAction}>
+              <form action={removeFeedbackAction} className="shrink-0">
                 <input type="hidden" name="titleId" value={title.id} />
                 <input type="hidden" name="redirectTo" value="/watchlist" />
                 <button type="submit" className="text-sm text-zinc-500 underline">

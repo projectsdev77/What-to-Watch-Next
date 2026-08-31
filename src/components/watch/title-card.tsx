@@ -40,9 +40,9 @@ export function TitleCard({
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
-          <Link href={`/title/${title.id}`} className="hover:underline">
+          <Link href={`/title/${title.id}`} className="min-w-0 hover:underline">
             <p className={featured ? "text-lg font-semibold" : "line-clamp-2 text-sm font-medium"}>{title.title}</p>
           </Link>
           <span className="shrink-0 rounded bg-emerald-600/20 px-2 py-0.5 text-xs font-medium text-emerald-500">

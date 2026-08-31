@@ -19,6 +19,8 @@ function requireApiKey(): string {
   return key;
 }
 
+const MAX_ATTEMPTS = 3;
+
 async function tmdbFetch<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const url = new URL(`${TMDB_BASE_URL}${path}`);
   url.searchParams.set("api_key", requireApiKey());
@@ -26,11 +28,25 @@ async function tmdbFetch<T>(path: string, params: Record<string, string | number
     url.searchParams.set(key, String(value));
   }
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    throw new Error(`TMDB request failed (${res.status}): ${path}`);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(url.toString());
+    if (res.ok) return res.json() as Promise<T>;
+
+    // Only retry transient failures (rate limit / server errors) — a
+    // 404 or 401 will never succeed on retry.
+    const retryable = res.status === 429 || res.status >= 500;
+    if (!retryable || attempt === MAX_ATTEMPTS) {
+      throw new Error(`TMDB request failed (${res.status}): ${path}`);
+    }
+
+    const retryAfterHeader = res.headers.get("Retry-After");
+    const delayMs = retryAfterHeader ? Number(retryAfterHeader) * 1000 : 500 * 2 ** (attempt - 1);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-  return res.json() as Promise<T>;
+
+  // Unreachable — the loop above always returns or throws — but keeps
+  // TypeScript satisfied that every path returns a value.
+  throw new Error(`TMDB request failed: ${path}`);
 }
 
 export interface TmdbTitleSummary {
