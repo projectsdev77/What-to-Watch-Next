@@ -7,6 +7,7 @@
 // and why Watchmode is the recommended upgrade path later.
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+export const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w342";
 
 export type MediaType = "movie" | "tv";
 
