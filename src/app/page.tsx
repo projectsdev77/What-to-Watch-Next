@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getTonightsPick, type CandidateStatus } from "@/lib/recommendations";
 import { TitleCard } from "@/components/watch/title-card";
+import { AppHeader } from "@/components/chrome/app-header";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -18,54 +19,55 @@ export default async function Home() {
 
   const result = await getTonightsPick(user.id);
 
-  if (result.status !== "ok") {
-    return <EmptyState status={result.status} />;
-  }
-
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 py-12">
-      <section>
-        <h1 className="mb-4 text-2xl font-semibold">Tonight&apos;s Pick</h1>
-        <TitleCard title={result.pick} redirectTo="/" featured />
-      </section>
+    <div className="flex flex-1 flex-col bg-sky">
+      <AppHeader active="/" />
+      {result.status !== "ok" ? (
+        <EmptyState status={result.status} />
+      ) : (
+        <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-[34px] px-4 py-8 sm:px-10 sm:py-10">
+          <TitleCard title={result.pick} redirectTo="/" featured />
 
-      {result.discover.length > 0 && (
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-zinc-400">Also consider</h2>
-            <Link href="/browse" className="text-sm underline">
-              Browse all
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {result.discover.map((title) => (
-              <TitleCard key={title.id} title={title} redirectTo="/" />
-            ))}
-          </div>
-        </section>
+          {result.discover.length > 0 && (
+            <section className="flex flex-col gap-4">
+              <div className="flex items-baseline gap-4">
+                <h2 className="font-heading text-[15px] font-semibold tracking-[.18em]">ALSO CONSIDER</h2>
+                <div className="h-[2px] flex-1 bg-steel" />
+                <Link href="/browse" className="text-[13px] font-semibold text-steel-dark">
+                  Browse all
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
+                {result.discover.map((title) => (
+                  <TitleCard key={title.id} title={title} redirectTo="/" />
+                ))}
+              </div>
+            </section>
+          )}
+        </main>
       )}
-    </main>
+    </div>
   );
 }
 
 function EmptyState({ status }: { status: CandidateStatus }) {
   const copy: Record<CandidateStatus, { heading: string; body: string; cta?: { href: string; label: string } }> = {
     "no-platforms": {
-      heading: "Pick your platforms first",
+      heading: "PICK YOUR PLATFORMS FIRST",
       body: "We couldn't find any selected streaming services for your account.",
-      cta: { href: "/onboarding/platforms", label: "Choose platforms" },
+      cta: { href: "/onboarding/platforms", label: "CHOOSE PLATFORMS" },
     },
     "empty-catalog": {
-      heading: "Catalog isn't loaded yet",
+      heading: "CATALOG ISN'T LOADED YET",
       body: "The title catalog hasn't been seeded yet — run `npm run seed` to populate it, then refresh.",
     },
     "nothing-available": {
-      heading: "Nothing found on your platforms yet",
+      heading: "NOTHING FOUND ON YOUR PLATFORMS YET",
       body: "We don't have any cached titles available on the services you picked. Try adding another platform, or check back after the catalog is refreshed.",
-      cta: { href: "/settings", label: "Update platforms" },
+      cta: { href: "/settings", label: "UPDATE PLATFORMS" },
     },
     "all-rated": {
-      heading: "You've seen everything we've got",
+      heading: "YOU'VE SEEN EVERYTHING WE'VE GOT",
       body: "You've rated or watched everything currently cached for your platforms. More titles will show up once the catalog is refreshed.",
     },
   };
@@ -73,14 +75,16 @@ function EmptyState({ status }: { status: CandidateStatus }) {
   const { heading, body, cta } = copy[status];
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-      <h1 className="mb-2 text-xl font-semibold">{heading}</h1>
-      <p className="max-w-md text-sm text-zinc-500">{body}</p>
-      {cta && (
-        <Link href={cta.href} className="mt-4 rounded bg-foreground px-4 py-2 text-sm text-background">
-          {cta.label}
-        </Link>
-      )}
+    <main className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+      <div className="flex w-full max-w-[520px] flex-col items-start gap-4 bg-card p-9 shadow-card">
+        <h1 className="font-heading text-[20px] font-semibold tracking-[.18em]">{heading}</h1>
+        <p className="max-w-[48ch] text-[15px] leading-[1.7] text-text-2">{body}</p>
+        {cta && (
+          <Link href={cta.href} className="bg-ink px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white">
+            {cta.label}
+          </Link>
+        )}
+      </div>
     </main>
   );
 }

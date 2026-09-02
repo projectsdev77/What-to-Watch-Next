@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { genreName } from "@/lib/genres";
 import { DEFAULT_REGION } from "@/lib/platforms";
 import { TMDB_POSTER_BASE_URL, tmdbTitleUrl } from "@/lib/tmdb";
-import { FeedbackActions } from "@/components/watch/feedback-actions";
+import { FeedbackActions, WatchlistButton } from "@/components/watch/feedback-actions";
+import { AppHeader } from "@/components/chrome/app-header";
 
 export default async function TitleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
@@ -40,68 +41,89 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
 
   const platforms = [...new Set((availabilityRows ?? []).map((r) => r.platform_name as string))];
   const redirectTo = `/title/${titleId}`;
+  const isWatchlisted = feedback?.status === "watchlisted";
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-12 sm:flex-row">
-      <div className="relative aspect-[2/3] w-full shrink-0 overflow-hidden rounded bg-zinc-200 sm:w-64 dark:bg-zinc-800">
-        {title.poster_path && (
-          <Image
-            src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
-            alt={title.title}
-            fill
-            sizes="256px"
-            className="object-cover"
-          />
-        )}
-      </div>
+    <div className="flex flex-1 flex-col bg-sky">
+      <AppHeader />
+      <main className="mx-auto w-full max-w-[1000px] flex-1 px-4 py-8 sm:px-10 sm:py-10">
+        <div className="relative overflow-hidden p-[10px] sm:p-[22px]">
+          {title.poster_path && (
+            <Image
+              src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
+              alt=""
+              aria-hidden
+              fill
+              sizes="100vw"
+              className="scale-125 object-cover blur-2xl brightness-75"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-r from-ink/35 to-steel/25" />
 
-      <div className="flex flex-1 flex-col gap-3">
-        <h1 className="text-2xl font-semibold">{title.title}</h1>
+          <div className="glass-crystal relative flex flex-col gap-[18px] p-6 sm:flex-row sm:gap-[26px]">
+            <div className="relative mx-auto aspect-[2/3] w-[150px] shrink-0 overflow-hidden rounded-[14px] shadow-[0_16px_38px_rgba(12,35,52,.3)] sm:mx-0 sm:w-[190px]">
+              {title.poster_path && (
+                <Image
+                  src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
+                  alt={title.title}
+                  fill
+                  sizes="190px"
+                  className="object-cover"
+                />
+              )}
+            </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
-          {(title.genre_ids as number[]).map((gid) => (
-            <span key={gid} className="rounded bg-zinc-200 px-2 py-0.5 dark:bg-zinc-800">
-              {genreName(gid)}
-            </span>
-          ))}
-          {title.vote_average != null && <span>★ {title.vote_average.toFixed(1)}</span>}
+            <div className="flex min-w-0 flex-1 flex-col gap-[14px]">
+              <div className="flex flex-col gap-[8px]">
+                <h1 className="font-heading text-[28px] leading-[1.05] font-semibold tracking-[-.03em] sm:text-[36px]">
+                  {title.title}
+                </h1>
+                <div className="flex flex-wrap items-center gap-[9px] text-[13px] font-semibold text-text-2">
+                  {(title.genre_ids as number[]).map((gid) => (
+                    <span key={gid} className="bg-white/55 px-[9px] py-[3px] text-[11.5px] font-semibold">
+                      {genreName(gid)}
+                    </span>
+                  ))}
+                  {title.vote_average != null && <span>★ {title.vote_average.toFixed(1)}</span>}
+                </div>
+                {platforms.length > 0 && (
+                  <span className="text-[13.5px] font-semibold text-text-2">{platforms.join(" · ")}</span>
+                )}
+              </div>
+
+              {title.overview && (
+                <p className="max-w-[62ch] text-[14.5px] leading-[1.65] text-text-2">{title.overview}</p>
+              )}
+
+              {title.cast_names && (title.cast_names as string[]).length > 0 && (
+                <p className="text-[13.5px] text-text-2">
+                  <span className="text-text-3">Cast: </span>
+                  {(title.cast_names as string[]).join(", ")}
+                </p>
+              )}
+
+              {feedback?.status && (
+                <p className="text-[12px] font-semibold tracking-[.08em] text-text-3 uppercase">
+                  Your status: {feedback.status}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
+                <a
+                  href={tmdbTitleUrl(title.media_type, title.tmdb_id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full bg-ink px-8 py-[14px] text-[13.5px] font-bold tracking-[.1em] text-white shadow-[0_12px_28px_rgba(12,35,52,.35)]"
+                >
+                  WATCH NOW
+                </a>
+                <WatchlistButton titleId={title.id} redirectTo={redirectTo} isWatchlisted={isWatchlisted} />
+              </div>
+              <FeedbackActions titleId={title.id} redirectTo={redirectTo} />
+            </div>
+          </div>
         </div>
-
-        {platforms.length > 0 && (
-          <p className="text-sm text-zinc-500">Available on {platforms.join(" · ")}</p>
-        )}
-
-        {title.overview && <p className="text-sm text-zinc-400">{title.overview}</p>}
-
-        {title.cast_names && (title.cast_names as string[]).length > 0 && (
-          <p className="text-sm text-zinc-500">
-            <span className="text-zinc-400">Cast: </span>
-            {(title.cast_names as string[]).join(", ")}
-          </p>
-        )}
-
-        {feedback?.status && (
-          <p className="text-xs text-zinc-500">
-            Your status: <span className="font-medium">{feedback.status}</span>
-          </p>
-        )}
-
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <a
-            href={tmdbTitleUrl(title.media_type, title.tmdb_id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded bg-foreground px-4 py-2 text-sm text-background"
-          >
-            Watch Now
-          </a>
-          <FeedbackActions
-            titleId={title.id}
-            redirectTo={redirectTo}
-            isWatchlisted={feedback?.status === "watchlisted"}
-          />
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

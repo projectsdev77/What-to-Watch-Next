@@ -1,24 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Archivo_Black, Instrument_Sans } from "next/font/google";
 import "./globals.css";
-import { createClient } from "@/lib/supabase/server";
-import { signOutAction } from "@/app/login/actions";
 
-const NAV_LINKS = [
-  { href: "/", label: "Tonight's Pick" },
-  { href: "/browse", label: "Browse" },
-  { href: "/watchlist", label: "Watchlist" },
-  { href: "/settings", label: "Settings" },
-] as const;
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const archivo = Archivo({
+  variable: "--font-archivo",
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const archivoBlack = Archivo_Black({
+  variable: "--font-archivo-black",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
 });
 
@@ -34,42 +32,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${archivo.variable} ${archivoBlack.variable} ${instrumentSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 px-4 py-3 dark:border-white/15">
-          <div className="flex flex-wrap items-center gap-5">
-            <span className="font-semibold">What To Watch Next</span>
-            {user && (
-              <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
-                {NAV_LINKS.map((link) => (
-                  <Link key={link.href} href={link.href} className="hover:text-foreground">
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
-            )}
-          </div>
-          {user && (
-            <form action={signOutAction} className="flex items-center gap-3">
-              <span className="hidden text-sm text-zinc-500 sm:inline">{user.email}</span>
-              <button type="submit" className="text-sm underline">
-                Log out
-              </button>
-            </form>
-          )}
-        </header>
-        {children}
-      </body>
+      <body className="flex min-h-full flex-col bg-sky text-text-1">{children}</body>
     </html>
   );
 }

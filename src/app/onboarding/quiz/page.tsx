@@ -48,31 +48,50 @@ export default async function QuizOnboardingPage() {
     .sort((a, b) => shuffleKey(`${user.id}-${a.id}`) - shuffleKey(`${user.id}-${b.id}`))
     .slice(0, QUIZ_BATCH_SIZE);
 
+  const progressPercent = Math.min(100, Math.round((ratedIds.size / SUGGESTED_MINIMUM) * 100));
+
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-16">
-      <div className="w-full max-w-3xl">
-        <h1 className="mb-1 text-2xl font-semibold">Rate a few titles</h1>
-        <p className="mb-6 text-sm text-zinc-500">
-          {ratedIds.size} rated
-          {ratedIds.size >= SUGGESTED_MINIMUM
-            ? " — continue whenever you're ready."
-            : ` — rate a few more to help us learn your taste (aim for ${SUGGESTED_MINIMUM}+).`}
-        </p>
+    <main className="flex flex-1 flex-col bg-sky">
+      <div className="flex items-center gap-6 bg-steel px-6 py-3.5 sm:px-10">
+        <span className="font-wordmark text-[17px] tracking-[-.02em] text-white">WWN</span>
+        <span className="ml-auto text-[12.5px] font-semibold tracking-[.14em] text-white/85">
+          RATE A FEW TO BEGIN
+        </span>
+      </div>
+
+      <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-10">
+        <div className="mb-7 flex flex-wrap items-end gap-6">
+          <div>
+            <h1 className="font-heading text-[24px] font-semibold tracking-[.2em]">TASTE QUIZ</h1>
+            <p className="mt-2 text-[14.5px] text-text-2">
+              Like, pass, or mark titles you&apos;ve seen — tonight&apos;s pick learns from every one.
+            </p>
+          </div>
+          <div className="ml-auto flex w-[220px] flex-col gap-[7px]">
+            <div className="flex justify-between text-[12.5px] font-semibold">
+              <span>{ratedIds.size} rated</span>
+              <span className="text-text-3">{progressPercent}%</span>
+            </div>
+            <div className="h-[6px] bg-[rgba(12,35,52,.16)]">
+              <div className="h-full bg-ink" style={{ width: `${progressPercent}%` }} />
+            </div>
+          </div>
+        </div>
 
         {batch.length === 0 ? (
-          <p className="mb-6 text-sm text-zinc-500">
+          <p className="mb-6 text-[14.5px] text-text-2">
             You&apos;ve rated everything we have cached so far — hit continue below.
           </p>
         ) : (
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="mb-8 grid grid-cols-2 gap-[18px] sm:grid-cols-3">
             {batch.map((title) => (
               <form
                 key={title.id}
                 action={rateTitleAction}
-                className="flex flex-col gap-2 rounded border border-black/10 p-2 dark:border-white/15"
+                className="flex flex-col gap-[11px] bg-card p-3 shadow-card"
               >
                 <input type="hidden" name="titleId" value={title.id} />
-                <div className="relative aspect-[2/3] w-full overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800">
+                <div className="relative aspect-[2/3] w-full overflow-hidden bg-[rgba(12,35,52,.08)]">
                   {title.poster_path && (
                     <Image
                       src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
@@ -83,16 +102,28 @@ export default async function QuizOnboardingPage() {
                     />
                   )}
                 </div>
-                <p className="line-clamp-2 text-sm font-medium">{title.title}</p>
-                <div className="flex gap-1 text-xs">
-                  <button name="status" value="liked" className="flex-1 rounded bg-emerald-600 py-1 text-white">
-                    👍 Like
+                <p className="line-clamp-2 text-[13.5px] font-semibold">{title.title}</p>
+                <div className="flex gap-[6px]">
+                  <button
+                    name="status"
+                    value="liked"
+                    className="flex-1 bg-ink py-[9px] text-[11px] font-bold tracking-[.06em] text-white"
+                  >
+                    LIKE
                   </button>
-                  <button name="status" value="disliked" className="flex-1 rounded bg-zinc-500 py-1 text-white">
-                    👎 Pass
+                  <button
+                    name="status"
+                    value="disliked"
+                    className="flex-1 border border-[rgba(12,35,52,.28)] py-[9px] text-[11px] font-bold tracking-[.06em]"
+                  >
+                    PASS
                   </button>
-                  <button name="status" value="skipped" className="flex-1 rounded bg-zinc-500 py-1 text-white">
-                    ⏭ Seen it
+                  <button
+                    name="status"
+                    value="skipped"
+                    className="flex-1 border border-[rgba(12,35,52,.28)] py-[9px] text-[10px] font-bold tracking-[.02em]"
+                  >
+                    SEEN
                   </button>
                 </div>
               </form>
@@ -101,8 +132,11 @@ export default async function QuizOnboardingPage() {
         )}
 
         <form action={finishQuizAction}>
-          <button type="submit" className="rounded bg-foreground px-4 py-2 text-background">
-            Continue to your recommendations
+          <button
+            type="submit"
+            className="bg-ink px-8 py-[15px] text-[13.5px] font-bold tracking-[.14em] text-white"
+          >
+            CONTINUE TO YOUR RECOMMENDATIONS
           </button>
         </form>
       </div>

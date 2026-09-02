@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AuthForm } from "@/components/auth/auth-form";
+import { AuthHero } from "@/components/auth/auth-hero";
 
 export default async function LoginPage({
   searchParams,
@@ -18,25 +19,40 @@ export default async function LoginPage({
   const isSignup = mode === "signup";
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-16">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-semibold">What To Watch Next</h1>
-        <p className="mb-6 text-sm text-zinc-500">
-          {isSignup ? "Create an account to get started." : "Log in to see tonight's pick."}
-        </p>
-        <AuthForm mode={isSignup ? "signup" : "login"} />
-        <p className="mt-4 text-sm text-zinc-500">
+    <AuthHero
+      tagline={isSignup ? "TAKE THE TASTE QUIZ AFTER SIGN UP" : "LOG IN TO SEE TONIGHT'S PICK"}
+      slogan={
+        isSignup ? undefined : (
+          <>
+            STOP SCROLLING
+            <br />
+            START WATCHING
+          </>
+        )
+      }
+    >
+      <div className="w-full max-w-[380px] bg-card px-8 py-9 shadow-panel">
+        <div className="mb-5 flex flex-col gap-5">
+          <AuthForm mode={isSignup ? "signup" : "login"} />
+        </div>
+        <p className="text-center text-[13px] text-text-2">
           {isSignup ? (
             <>
-              Already have an account? <Link href="/login" className="underline">Log in</Link>
+              Already have an account?{" "}
+              <Link href="/login" className="font-medium text-steel-dark">
+                Log in
+              </Link>
             </>
           ) : (
             <>
-              New here? <Link href="/login?mode=signup" className="underline">Create an account</Link>
+              New here?{" "}
+              <Link href="/login?mode=signup" className="font-medium text-steel-dark">
+                Create an account
+              </Link>
             </>
           )}
         </p>
       </div>
-    </main>
+    </AuthHero>
   );
 }
