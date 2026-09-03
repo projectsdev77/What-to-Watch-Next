@@ -28,11 +28,14 @@ confident "watch this tonight" pick instead of an endless scroll.
 
 - **"Watch Now" link.** TMDB's free API doesn't give a true per-platform
   deep link (there's no "open this exact title on Hulu" URL available
-  without a paid feed) — it only returns one combined link per title
-  showing every real provider on one JustWatch-hosted page. That's what
-  "Watch Now" opens today (`titles.justwatch_link`, captured during
-  seeding, falling back to the title's TMDB page if TMDB has no provider
-  data for it).
+  without a paid feed). When a title is available on one of the user's
+  own selected platforms, "Watch Now" opens that platform's own search
+  results for the title's name instead (`platformSearchUrl` in
+  `src/lib/platforms.ts`) — asking which platform first if it's on more
+  than one. Falls back to the combined JustWatch/TMDB page
+  (`titles.justwatch_link`, falling back further to the TMDB page if
+  there's no provider data) when there's no matching platform, e.g. the
+  user only picked "Other".
 
   **This is a real limitation worth flagging to the client:** true
   one-click "open this exact title on the platform I picked" deep

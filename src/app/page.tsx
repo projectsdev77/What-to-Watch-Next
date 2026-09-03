@@ -26,7 +26,7 @@ export default async function Home() {
         <EmptyState status={result.status} />
       ) : (
         <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-[34px] px-4 py-8 sm:px-10 sm:py-10">
-          <TitleCard title={result.pick} redirectTo="/" featured />
+          <TitleCard title={result.pick} redirectTo="/" featured unrestricted={result.unrestricted} />
 
           {result.discover.length > 0 && (
             <section className="flex flex-col gap-4">

@@ -47,6 +47,12 @@ interface CandidatePool {
   hasSignal: boolean;
   allPlatforms: string[];
   allGenres: { id: number; name: string }[];
+  // True when the user has no real platform preference (picked only
+  // "Other"), so `platforms`/`allPlatforms` show everything available
+  // rather than a filtered set the user actually subscribes to — the UI
+  // needs this to know whether a per-platform Watch Now picker is honest
+  // to offer, or whether to fall back to the generic combined link.
+  unrestricted: boolean;
 }
 
 // A watchlisted title should be *favored*, not hidden — this is a flat
@@ -180,6 +186,7 @@ async function getCandidatePool(
     hasSignal,
     allPlatforms: [...seenPlatforms].sort(),
     allGenres: [...allGenreIds].map((id) => ({ id, name: genreName(id) })).sort((a, b) => a.name.localeCompare(b.name)),
+    unrestricted,
   };
 }
 
@@ -225,7 +232,7 @@ function toRecommended(candidate: ScoredCandidate, pool: CandidatePool, min: num
 
 export type TonightsPickResult =
   | { status: CandidateStatus }
-  | { status: "ok"; pick: RecommendedTitle; discover: RecommendedTitle[] };
+  | { status: "ok"; pick: RecommendedTitle; discover: RecommendedTitle[]; unrestricted: boolean };
 
 const DISCOVER_SIZE = 6;
 
@@ -259,6 +266,7 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
     status: "ok",
     pick: toRecommended(pick, pool, min, max),
     discover: related.slice(0, DISCOVER_SIZE).map((c) => toRecommended(c, pool, min, max)),
+    unrestricted: pool.unrestricted,
   };
 }
 
@@ -275,6 +283,7 @@ export type DiscoverListResult =
       titles: RecommendedTitle[];
       availablePlatforms: string[];
       availableGenres: { id: number; name: string }[];
+      unrestricted: boolean;
     };
 
 const DEFAULT_DISCOVER_LIMIT = 30;
@@ -301,5 +310,6 @@ export async function getDiscoverList(userId: string, options: DiscoverListOptio
     titles: filtered.slice(0, options.limit ?? DEFAULT_DISCOVER_LIMIT).map((c) => toRecommended(c, pool, min, max)),
     availablePlatforms: pool.allPlatforms,
     availableGenres: pool.allGenres,
+    unrestricted: pool.unrestricted,
   };
 }

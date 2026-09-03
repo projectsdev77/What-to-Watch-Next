@@ -2,9 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { genreName } from "@/lib/genres";
-import { DEFAULT_REGION } from "@/lib/platforms";
+import { DEFAULT_REGION, NO_PREFERENCE_PLATFORM } from "@/lib/platforms";
 import { TMDB_POSTER_BASE_URL, tmdbTitleUrl } from "@/lib/tmdb";
 import { FeedbackActions, WatchlistButton } from "@/components/watch/feedback-actions";
+import { WatchNowButton } from "@/components/watch/watch-now-button";
 import { AppHeader } from "@/components/chrome/app-header";
 
 export default async function TitleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,32 +19,44 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   const titleId = Number(id);
   if (!titleId) notFound();
 
-  const [{ data: title }, { data: availabilityRows }, { data: feedback }] = await Promise.all([
-    supabase
-      .from("titles")
-      .select(
-        "id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average, justwatch_link"
-      )
-      .eq("id", titleId)
-      .maybeSingle(),
-    supabase
-      .from("title_availability")
-      .select("platform_name")
-      .eq("title_id", titleId)
-      .eq("region", DEFAULT_REGION),
-    supabase
-      .from("user_title_feedback")
-      .select("status")
-      .eq("user_id", user.id)
-      .eq("title_id", titleId)
-      .maybeSingle(),
-  ]);
+  const [{ data: title }, { data: availabilityRows }, { data: feedback }, { data: userPlatformRows }] =
+    await Promise.all([
+      supabase
+        .from("titles")
+        .select(
+          "id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average, justwatch_link"
+        )
+        .eq("id", titleId)
+        .maybeSingle(),
+      supabase
+        .from("title_availability")
+        .select("platform_name")
+        .eq("title_id", titleId)
+        .eq("region", DEFAULT_REGION),
+      supabase
+        .from("user_title_feedback")
+        .select("status")
+        .eq("user_id", user.id)
+        .eq("title_id", titleId)
+        .maybeSingle(),
+      supabase.from("user_platforms").select("platform_name").eq("user_id", user.id),
+    ]);
 
   if (!title) notFound();
 
   const platforms = [...new Set((availabilityRows ?? []).map((r) => r.platform_name as string))];
   const redirectTo = `/title/${titleId}`;
   const isWatchlisted = feedback?.status === "watchlisted";
+
+  // "Other" isn't a real platform to build a Watch Now picker from —
+  // when that's all the user picked, there's nothing to filter to, so
+  // fall back to the generic combined link (same as recommendations.ts's
+  // unrestricted mode).
+  const userRealPlatforms = (userPlatformRows ?? [])
+    .map((p) => p.platform_name as string)
+    .filter((p) => p !== NO_PREFERENCE_PLATFORM);
+  const matchingPlatforms =
+    userRealPlatforms.length === 0 ? [] : platforms.filter((p) => userRealPlatforms.includes(p));
 
   return (
     <div className="flex flex-1 flex-col bg-sky">
@@ -111,14 +124,11 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
               )}
 
               <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
-                <a
-                  href={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full bg-ink px-8 py-[14px] text-[13.5px] font-bold tracking-[.1em] text-white shadow-[0_12px_28px_rgba(12,35,52,.35)]"
-                >
-                  WATCH NOW
-                </a>
+                <WatchNowButton
+                  title={title.title}
+                  matchingPlatforms={matchingPlatforms}
+                  fallbackUrl={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
+                />
                 <WatchlistButton titleId={title.id} redirectTo={redirectTo} isWatchlisted={isWatchlisted} />
               </div>
               <FeedbackActions titleId={title.id} redirectTo={redirectTo} />

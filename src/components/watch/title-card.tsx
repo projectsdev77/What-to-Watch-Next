@@ -3,18 +3,25 @@ import Image from "next/image";
 import { TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import type { RecommendedTitle } from "@/lib/recommendations";
 import { FeedbackActions, WatchlistButton } from "@/components/watch/feedback-actions";
+import { WatchNowButton } from "@/components/watch/watch-now-button";
 
 export function TitleCard({
   title,
   redirectTo,
   featured = false,
+  unrestricted = false,
 }: {
   title: RecommendedTitle;
   redirectTo: string;
   featured?: boolean;
+  // True when the user has no real platform preference (picked only
+  // "Other") — title.platforms then lists everything available rather
+  // than what the user actually subscribes to, so Watch Now shouldn't
+  // offer a per-platform picker built from it.
+  unrestricted?: boolean;
 }) {
   if (featured) {
-    return <FeaturedCard title={title} redirectTo={redirectTo} />;
+    return <FeaturedCard title={title} redirectTo={redirectTo} unrestricted={unrestricted} />;
   }
 
   return (
@@ -45,7 +52,15 @@ export function TitleCard({
   );
 }
 
-function FeaturedCard({ title, redirectTo }: { title: RecommendedTitle; redirectTo: string }) {
+function FeaturedCard({
+  title,
+  redirectTo,
+  unrestricted,
+}: {
+  title: RecommendedTitle;
+  redirectTo: string;
+  unrestricted: boolean;
+}) {
   // No 16:9 backdrop asset exists for arbitrary titles — the poster
   // itself, blurred and scaled behind the glass panel, stands in as
   // the "artwork behind the glass" the design system requires (real
@@ -104,14 +119,11 @@ function FeaturedCard({ title, redirectTo }: { title: RecommendedTitle; redirect
           <p className="max-w-[62ch] text-[14.5px] leading-[1.65] text-text-2">{title.why}</p>
 
           <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
-            <a
-              href={title.watchUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full bg-ink px-8 py-[14px] text-[13.5px] font-bold tracking-[.1em] text-white shadow-[0_12px_28px_rgba(12,35,52,.35)]"
-            >
-              WATCH NOW
-            </a>
+            <WatchNowButton
+              title={title.title}
+              matchingPlatforms={unrestricted ? [] : title.platforms}
+              fallbackUrl={title.watchUrl}
+            />
             <WatchlistButton titleId={title.id} redirectTo={redirectTo} isWatchlisted={title.isWatchlisted} />
           </div>
           <div className="pt-1">
