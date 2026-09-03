@@ -235,6 +235,55 @@ describe("getTonightsPick — scoring", () => {
     expect(result.pick.id).toBe(1);
     expect(result.pick.isWatchlisted).toBe(true);
   });
+
+  it("avoids picking the same genre as the most recently disliked title, when a real alternative exists", async () => {
+    const titles = [
+      title(2, [28], 8.0, "Action B"), // same genre as the dislike, would otherwise be the top pick
+      title(3, [18], 7.0, "Drama C"), // different genre, lower raw score
+    ];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      genreWeights: {},
+      feedback: [
+        {
+          title_id: 99,
+          status: "disliked",
+          updated_at: new Date().toISOString(),
+          titles: { title: "Disliked Action Show", genre_ids: [28] },
+        },
+      ],
+    });
+
+    const result = await getTonightsPick("u1");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.pick.id).toBe(3);
+  });
+
+  it("still picks the best option when literally everything shares the disliked genre", async () => {
+    const titles = [title(2, [28], 8.0), title(3, [28], 5.0)]; // both Action, no escaping it
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      genreWeights: {},
+      feedback: [
+        {
+          title_id: 99,
+          status: "disliked",
+          updated_at: new Date().toISOString(),
+          titles: { title: "Disliked Action Show", genre_ids: [28] },
+        },
+      ],
+    });
+
+    const result = await getTonightsPick("u1");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.pick.id).toBe(2); // still the higher-scored of the two, penalty or not
+  });
 });
 
 describe("getDiscoverList — feedback exclusion rules", () => {

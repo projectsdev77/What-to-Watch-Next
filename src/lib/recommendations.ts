@@ -53,6 +53,11 @@ interface CandidatePool {
   // needs this to know whether a per-platform Watch Now picker is honest
   // to offer, or whether to fall back to the generic combined link.
   unrestricted: boolean;
+  // Genres of the single most recently disliked title, if any — used to
+  // steer tonight's pick away from an immediate same-genre repeat (see
+  // pickTonightsTitle). Not used for Browse/Discover's ordering, which
+  // should stay pure taste-rank.
+  recentlyDislikedGenreIds: Set<number>;
 }
 
 // A watchlisted title should be *favored*, not hidden — this is a flat
@@ -161,6 +166,24 @@ async function getCandidatePool(
     }
   }
 
+  // Most recent dislike's genres — a flat score sum has no sense of
+  // "I just said no to this kind of thing," so without this, disliking
+  // one title in a genre the user's taste profile otherwise favors just
+  // surfaces the next-highest-scoring title from that same genre, which
+  // reads as "nothing changed."
+  let recentlyDislikedGenreIds = new Set<number>();
+  let mostRecentDislikeAt = -Infinity;
+  for (const row of feedbackRows ?? []) {
+    if (row.status !== "disliked") continue;
+    const disliked = row.titles as unknown as { genre_ids: number[] } | null;
+    if (!disliked) continue;
+    const at = new Date(row.updated_at as string).getTime();
+    if (at > mostRecentDislikeAt) {
+      mostRecentDislikeAt = at;
+      recentlyDislikedGenreIds = new Set(disliked.genre_ids);
+    }
+  }
+
   const allGenreIds = new Set<number>();
   const scored: ScoredCandidate[] = (candidateRows as CandidateRow[]).map((row) => {
     row.genre_ids.forEach((id) => allGenreIds.add(id));
@@ -189,7 +212,27 @@ async function getCandidatePool(
     allPlatforms: [...seenPlatforms].sort(),
     allGenres: [...allGenreIds].map((id) => ({ id, name: genreName(id) })).sort((a, b) => a.name.localeCompare(b.name)),
     unrestricted,
+    recentlyDislikedGenreIds,
   };
+}
+
+// Enough to usually bump a same-genre repeat below a different-genre
+// alternative that's reasonably close in score, without being an
+// absolute ban on the genre — if literally everything eligible shares
+// it, that's still the best available pick.
+const DISLIKED_GENRE_PENALTY = 2;
+
+function pickTonightsTitle(pool: CandidatePool): ScoredCandidate {
+  if (pool.recentlyDislikedGenreIds.size === 0) return pool.scored[0];
+
+  const adjusted = pool.scored.map((candidate) => ({
+    candidate,
+    adjustedScore:
+      candidate.score -
+      (candidate.row.genre_ids.some((id) => pool.recentlyDislikedGenreIds.has(id)) ? DISLIKED_GENRE_PENALTY : 0),
+  }));
+  adjusted.sort((a, b) => b.adjustedScore - a.adjustedScore || b.candidate.score - a.candidate.score);
+  return adjusted[0].candidate;
 }
 
 function toRecommended(candidate: ScoredCandidate, pool: CandidatePool, min: number, max: number): RecommendedTitle {
@@ -252,7 +295,8 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
   const min = Math.min(...scores);
   const max = Math.max(...scores);
 
-  const [pick, ...rest] = pool.scored;
+  const pick = pickTonightsTitle(pool);
+  const rest = pool.scored.filter((c) => c.row.id !== pick.row.id);
 
   // "Also consider" should read as "because you're about to watch this",
   // not just "your next-best overall matches" — rank by how much each
