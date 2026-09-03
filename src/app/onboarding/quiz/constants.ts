@@ -2,4 +2,4 @@
 // enforced goal — rateTitleAction auto-finishes onboarding once real
 // ratings reach this count, per the "rate until we have enough, then
 // skip straight to recommendations" flow).
-export const RATING_GOAL = 10;
+export const RATING_GOAL = 15;
