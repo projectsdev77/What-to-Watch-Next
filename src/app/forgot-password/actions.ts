@@ -34,7 +34,7 @@ export async function requestPasswordResetAction(
   const { allowed } = checkRateLimit(`reset:email:${email.toLowerCase()}`, RESET_EMAIL_LIMIT, RESET_WINDOW_MS);
   if (allowed) {
     const supabase = await createClient();
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const origin = process.env.SITE_URL || "http://localhost:3000";
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/reset-password`,
     });
