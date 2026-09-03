@@ -72,25 +72,46 @@
   --font-wordmark: var(--font-archivo-black);
 }
 
-* {
-  box-sizing: border-box;
-}
+/*
+ * Tailwind v4 puts every utility class inside `@layer utilities`. A plain,
+ * unlayered rule always wins over ANY layered rule regardless of
+ * specificity (that's how CSS cascade layers work) — so a bare `a { color }`
+ * here would silently beat `text-white`/`text-steel-dark`/etc. on every
+ * link in the app. Everything custom below is layered on purpose so
+ * ordinary Tailwind utilities can override it as expected.
+ */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-body {
-  background: var(--sky);
-  color: var(--text-1);
-  font-family: var(--font-instrument-sans), system-ui, sans-serif;
-}
+  body {
+    background: var(--sky);
+    color: var(--text-1);
+    font-family: var(--font-instrument-sans), system-ui, sans-serif;
+  }
 
-a {
-  color: var(--steel);
-}
-a:hover {
-  color: var(--ink);
-}
+  a {
+    color: var(--steel);
+  }
+  a:hover {
+    color: var(--ink);
+  }
 
-::selection {
-  background: rgba(65, 116, 142, 0.28);
+  ::selection {
+    background: rgba(65, 116, 142, 0.28);
+  }
+
+  /* Focus visibility (handoff section 6): 2px ink outline, 2px offset,
+   * on every interactive element. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -100,65 +121,67 @@ a:hover {
  * - ink type on Frost/Crystal, white type on Smoke, never the reverse
  * ------------------------------------------------------------------- */
 
-.glass-frost {
-  background: rgba(255, 255, 255, 0.44);
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(30px) saturate(170%);
-  -webkit-backdrop-filter: blur(30px) saturate(170%);
-  box-shadow: inset 0 1px 0 #fff;
-  border-radius: var(--r-panel);
-  color: var(--ink);
-}
-
-.glass-crystal {
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid #fff;
-  backdrop-filter: blur(42px) saturate(185%);
-  -webkit-backdrop-filter: blur(42px) saturate(185%);
-  box-shadow: var(--e-modal), inset 0 1px 0 #fff;
-  border-radius: var(--r-modal);
-  color: var(--ink);
-}
-
-.glass-smoke {
-  background: rgba(12, 35, 52, 0.48);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(30px) saturate(155%);
-  -webkit-backdrop-filter: blur(30px) saturate(155%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
-  border-radius: var(--r-panel);
-  color: #fff;
-}
-
-/* Opaque fallback for browsers without backdrop-filter, and for anyone
- * with "reduce transparency" on - never rely on the blur for contrast. */
-@supports not (backdrop-filter: blur(1px)) {
+@layer components {
   .glass-frost {
-    background: #e8f3fa;
+    background: rgba(255, 255, 255, 0.44);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    box-shadow: inset 0 1px 0 #fff;
+    border-radius: var(--r-panel);
+    color: var(--ink);
   }
-  .glass-crystal {
-    background: #f4fafe;
-  }
-  .glass-smoke {
-    background: #16324a;
-  }
-}
 
-@media (prefers-reduced-transparency: reduce) {
-  .glass-frost {
-    background: #e8f3fa;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
   .glass-crystal {
-    background: #f4fafe;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid #fff;
+    backdrop-filter: blur(42px) saturate(185%);
+    -webkit-backdrop-filter: blur(42px) saturate(185%);
+    box-shadow: var(--e-modal), inset 0 1px 0 #fff;
+    border-radius: var(--r-modal);
+    color: var(--ink);
   }
+
   .glass-smoke {
-    background: #16324a;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: rgba(12, 35, 52, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(30px) saturate(155%);
+    -webkit-backdrop-filter: blur(30px) saturate(155%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
+    border-radius: var(--r-panel);
+    color: #fff;
+  }
+
+  /* Opaque fallback for browsers without backdrop-filter, and for anyone
+   * with "reduce transparency" on - never rely on the blur for contrast. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-frost {
+      background: #e8f3fa;
+    }
+    .glass-crystal {
+      background: #f4fafe;
+    }
+    .glass-smoke {
+      background: #16324a;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-frost {
+      background: #e8f3fa;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .glass-crystal {
+      background: #f4fafe;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .glass-smoke {
+      background: #16324a;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
   }
 }
 
