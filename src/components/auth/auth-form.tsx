@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
 import { signInAction, signUpAction, type AuthState } from "@/app/login/actions";
 import { PASSWORD_REQUIREMENTS_HINT } from "@/lib/password";
+import Link from "next/link";
+import { useActionState } from "react";
 
 function FloatingLabelInput({
   id,
@@ -46,19 +47,29 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         required
         autoComplete="email"
       />
-      <FloatingLabelInput
-        id="password"
-        label="Password"
-        name="password"
-        type="password"
-        required
-        // Only enforce a minimum length when creating a password (signup).
-        // On login we should just attempt auth with whatever was typed —
-        // gating on length there produced a confusing "too short" message
-        // even when the credentials might otherwise be valid.
-        minLength={mode === "signup" ? 8 : undefined}
-        autoComplete={mode === "login" ? "current-password" : "new-password"}
-      />
+      <div className="flex flex-col gap-2">
+        <FloatingLabelInput
+          id="password"
+          label="Password"
+          name="password"
+          type="password"
+          required
+          // Only enforce a minimum length when creating a password (signup).
+          // On login we should just attempt auth with whatever was typed —
+          // gating on length there produced a confusing "too short" message
+          // even when the credentials might otherwise be valid.
+          minLength={mode === "signup" ? 8 : undefined}
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
+        />
+        {mode === "login" && (
+          <Link
+            href="/forgot-password"
+            className="self-end text-[12.5px] font-medium text-steel-dark hover:text-ink"
+          >
+            Forgot password?
+          </Link>
+        )}
+      </div>
       {mode === "signup" && (
         <p className="-mt-2 text-[12.5px] text-text-3">{PASSWORD_REQUIREMENTS_HINT}</p>
       )}

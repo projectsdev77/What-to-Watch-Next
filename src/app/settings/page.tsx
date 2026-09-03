@@ -1,11 +1,16 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { STREAMING_PLATFORMS } from "@/lib/platforms";
-import { PlatformPickerForm } from "@/components/settings/platform-picker-form";
 import { AppHeader } from "@/components/chrome/app-header";
-import { updatePlatformsAction, resetTasteProfileAction } from "./actions";
+import { PasswordResetSection } from "@/components/settings/password-reset-section";
+import { PlatformPickerForm } from "@/components/settings/platform-picker-form";
+import { STREAMING_PLATFORMS } from "@/lib/platforms";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { deleteAccountAction, resetTasteProfileAction, updatePlatformsAction } from "./actions";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ passwordResetSent?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,6 +22,8 @@ export default async function SettingsPage() {
     .select("platform_name")
     .eq("user_id", user.id);
   const selected = new Set((existing ?? []).map((p) => p.platform_name as string));
+
+  const { passwordResetSent } = await searchParams;
 
   return (
     <div className="flex flex-1 flex-col bg-sky">
@@ -42,22 +49,41 @@ export default async function SettingsPage() {
               }
             />
           </div>
+          <div className="h-px bg-[rgba(12,35,52,.14)]" />
+          <PasswordResetSection userEmail={user.email ?? ""} passwordResetSent={passwordResetSent === "true"} />
         </div>
 
-        <div className="flex flex-col gap-[13px] border-t-4 border-danger bg-card p-7 shadow-card">
-          <span className="text-[12.5px] font-bold tracking-[.16em] text-danger">TASTE PROFILE</span>
-          <p className="text-[14px] leading-[1.65] text-text-2">
-            This clears every rating and watchlist entry and sends you back through the taste quiz. Can&apos;t be
-            undone.
-          </p>
-          <form action={resetTasteProfileAction}>
-            <button
-              type="submit"
-              className="self-start border border-danger px-6 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-danger"
-            >
-              RESET TASTE PROFILE
-            </button>
-          </form>
+        <div className="flex flex-col gap-[22px]">
+          <div className="flex flex-col gap-[13px] border-t-4 border-danger bg-card p-7 shadow-card">
+            <span className="text-[12.5px] font-bold tracking-[.16em] text-danger">TASTE PROFILE</span>
+            <p className="text-[14px] leading-[1.65] text-text-2">
+              This clears every rating and watchlist entry and sends you back through the taste quiz. Can&apos;t be
+              undone.
+            </p>
+            <form action={resetTasteProfileAction}>
+              <button
+                type="submit"
+                className="self-start border border-danger px-6 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-danger"
+              >
+                RESET TASTE PROFILE
+              </button>
+            </form>
+          </div>
+
+          <div className="flex flex-col gap-[13px] border-t-4 border-danger bg-card p-7 shadow-card">
+            <span className="text-[12.5px] font-bold tracking-[.16em] text-danger">DELETE ACCOUNT</span>
+            <p className="text-[14px] leading-[1.65] text-text-2">
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+            <form action={deleteAccountAction}>
+              <button
+                type="submit"
+                className="self-start bg-danger px-6 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white"
+              >
+                DELETE MY ACCOUNT
+              </button>
+            </form>
+          </div>
         </div>
       </main>
     </div>
