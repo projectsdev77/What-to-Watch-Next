@@ -18,6 +18,12 @@ interface QuizTitle {
  * the card from *this* rendered batch via local state. Liked/Disliked
  * still submit to rateTitleAction as real server actions — those are
  * genuine judgments that need to be saved.
+ *
+ * Cards are keyed by title id, so when a rated title's server action
+ * revalidates the page and a fresh title backfills its spot, React only
+ * mounts the new card (the rest keep their existing DOM nodes) — that's
+ * what makes the fade-in below play just for the arrival, not the whole
+ * grid re-rendering.
  */
 export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
@@ -25,16 +31,20 @@ export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
 
   if (visible.length === 0) {
     return (
-      <p className="mb-6 text-[14.5px] text-text-2">
-        That&apos;s everything in this batch — hit continue below, or rate a few more once more titles are available.
+      <p className="mb-8 text-[14.5px] text-text-2">
+        That&apos;s everything in this batch — hit the button below, or rate a few more once more
+        titles are available.
       </p>
     );
   }
 
   return (
-    <div className="mb-8 grid grid-cols-2 gap-[18px] sm:grid-cols-3">
+    <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
       {visible.map((title) => (
-        <div key={title.id} className="flex flex-col gap-[11px] bg-card p-3 shadow-card">
+        <div
+          key={title.id}
+          className="animate-[quiz-card-in_0.4s_ease-out] flex flex-col gap-[10px] bg-card p-3 shadow-card"
+        >
           <div className="relative aspect-[2/3] w-full overflow-hidden bg-[rgba(12,35,52,.08)]">
             {title.poster_path && (
               <Image
@@ -46,28 +56,30 @@ export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
               />
             )}
           </div>
-          <p className="line-clamp-2 text-[13.5px] font-semibold">{title.title}</p>
-          <div className="flex gap-[6px]">
-            <form action={rateTitleAction} className="flex-1">
-              <input type="hidden" name="titleId" value={title.id} />
-              <input type="hidden" name="status" value="liked" />
-              <button className="w-full bg-ink py-[9px] text-[11px] font-bold tracking-[.06em] text-white">
-                LIKED
-              </button>
-            </form>
-            <form action={rateTitleAction} className="flex-1">
-              <input type="hidden" name="titleId" value={title.id} />
-              <input type="hidden" name="status" value="disliked" />
-              <button className="w-full border border-[rgba(12,35,52,.28)] py-[9px] text-[11px] font-bold tracking-[.06em]">
-                DISLIKED
-              </button>
-            </form>
+          <p className="line-clamp-2 min-h-[2.6em] text-[13.5px] leading-[1.3] font-semibold">{title.title}</p>
+          <div className="flex flex-col gap-[6px]">
+            <div className="flex gap-[6px]">
+              <form action={rateTitleAction} className="flex-1">
+                <input type="hidden" name="titleId" value={title.id} />
+                <input type="hidden" name="status" value="liked" />
+                <button className="flex w-full items-center justify-center gap-[5px] bg-ink py-[10px] text-[11.5px] font-bold tracking-[.05em] text-white transition-opacity hover:opacity-90">
+                  <span aria-hidden>✓</span> LIKED
+                </button>
+              </form>
+              <form action={rateTitleAction} className="flex-1">
+                <input type="hidden" name="titleId" value={title.id} />
+                <input type="hidden" name="status" value="disliked" />
+                <button className="flex w-full items-center justify-center gap-[5px] border border-[rgba(12,35,52,.28)] py-[10px] text-[11.5px] font-bold tracking-[.05em] text-text-2 transition-colors hover:border-ink hover:text-ink">
+                  <span aria-hidden>✕</span> DISLIKED
+                </button>
+              </form>
+            </div>
             <button
               type="button"
               onClick={() => setDismissedIds((prev) => new Set(prev).add(title.id))}
-              className="flex-1 border border-[rgba(12,35,52,.28)] py-[9px] text-[9px] font-bold tracking-[.01em] text-text-2"
+              className="py-[3px] text-center text-[11.5px] font-medium text-text-3 underline decoration-[rgba(12,35,52,.35)] underline-offset-2 transition-colors hover:text-text-2 hover:decoration-current"
             >
-              DIDN&apos;T WATCH
+              Haven&apos;t watched it
             </button>
           </div>
         </div>
