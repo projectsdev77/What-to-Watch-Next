@@ -43,6 +43,7 @@ export default async function SettingsPage({
               selected={selected}
               submitLabel="SAVE"
               pendingLabel="SAVING…"
+              requireChange
               footer={
                 <span className="text-[13px] text-text-3">
                   {selected.size} of {STREAMING_PLATFORMS.length} selected
