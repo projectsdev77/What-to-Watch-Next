@@ -56,6 +56,31 @@ and cached once per title at ingest time (`ingestTitle` in
 free daily quota — they refresh naturally as `/api/cron/refresh-catalog`
 re-ingests titles over time.
 
+## AI-picked Tonight's Pick
+
+The recommendation *engine* is still this app's own — TMDB catalog data,
+platform filtering, and a taste-weighted scoring formula (see
+`src/lib/recommendations.ts`) that already excludes rated titles, favors
+watchlisted ones, and steers away from a just-disliked genre. Above that,
+Google's [Gemini](https://aistudio.google.com/apikey) (free tier) picks
+Tonight's single featured title from the top 8 of that ranking and writes
+the "why" line — an external AI choosing and explaining the recommendation,
+per the client's direction, rather than this app building its own model.
+
+Grounded on purpose: Gemini is only ever shown a short list of real,
+already-available titles and a JSON schema that restricts its answer to
+one of their ids — a reply naming anything else is rejected server-side
+and the plain scoring pick is used instead (see `src/lib/gemini.ts`).
+Optional end to end: no `GEMINI_API_KEY` set, or the call fails or times
+out, and Tonight's Pick works exactly as it did before — the deterministic
+top-ranked title with a rule-based "why."
+
+**Cost note for the client:** this is a genuinely free tier (no card
+required), but it's rate- and volume-limited — fine for demoing and early
+real usage, not sized for high production traffic. If this AI feature
+matters enough to keep at scale, the honest next step is a paid Gemini
+(or other provider) tier.
+
 ## Keeping the catalog fresh
 
 `npm run seed` is a one-time bootstrap (TMDB's "popular" lists, ~120

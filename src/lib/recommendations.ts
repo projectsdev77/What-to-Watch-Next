@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { genreName } from "@/lib/genres";
 import { DEFAULT_REGION, NO_PREFERENCE_PLATFORM } from "@/lib/platforms";
 import { tmdbTitleUrl, type MediaType } from "@/lib/tmdb";
+import { chooseTonightsPick } from "@/lib/gemini";
 
 export interface RecommendedTitle {
   id: number;
@@ -55,7 +56,7 @@ interface CandidatePool {
   unrestricted: boolean;
   // Genres of the single most recently disliked title, if any — used to
   // steer tonight's pick away from an immediate same-genre repeat (see
-  // pickTonightsTitle). Not used for Browse/Discover's ordering, which
+  // rankCandidatesForTonight). Not used for Browse/Discover's ordering, which
   // should stay pure taste-rank.
   recentlyDislikedGenreIds: Set<number>;
 }
@@ -222,8 +223,12 @@ async function getCandidatePool(
 // it, that's still the best available pick.
 const DISLIKED_GENRE_PENALTY = 2;
 
-function pickTonightsTitle(pool: CandidatePool): ScoredCandidate {
-  if (pool.recentlyDislikedGenreIds.size === 0) return pool.scored[0];
+// Full deterministic ranking used to pick Tonight's Pick — also the
+// shortlist Gemini chooses from (see getTonightsPick): grounding the AI
+// to a short list of already-scored, real, available titles instead of
+// letting it pick from nothing.
+function rankCandidatesForTonight(pool: CandidatePool): ScoredCandidate[] {
+  if (pool.recentlyDislikedGenreIds.size === 0) return pool.scored;
 
   const adjusted = pool.scored.map((candidate) => ({
     candidate,
@@ -232,7 +237,7 @@ function pickTonightsTitle(pool: CandidatePool): ScoredCandidate {
       (candidate.row.genre_ids.some((id) => pool.recentlyDislikedGenreIds.has(id)) ? DISLIKED_GENRE_PENALTY : 0),
   }));
   adjusted.sort((a, b) => b.adjustedScore - a.adjustedScore || b.candidate.score - a.candidate.score);
-  return adjusted[0].candidate;
+  return adjusted.map((a) => a.candidate);
 }
 
 function toRecommended(candidate: ScoredCandidate, pool: CandidatePool, min: number, max: number): RecommendedTitle {
@@ -280,6 +285,11 @@ export type TonightsPickResult =
   | { status: "ok"; pick: RecommendedTitle; discover: RecommendedTitle[]; unrestricted: boolean };
 
 const DISCOVER_SIZE = 6;
+// How many of the top-ranked candidates Gemini gets to choose among —
+// small on purpose: keeps the prompt short and keeps every option a
+// genuinely good match on its own, so the AI is picking the best of
+// several good fits, not rescuing a bad one.
+const AI_SHORTLIST_SIZE = 8;
 
 function sharedGenreCount(a: number[], b: number[]): number {
   const bSet = new Set(b);
@@ -295,7 +305,38 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
   const min = Math.min(...scores);
   const max = Math.max(...scores);
 
-  const pick = pickTonightsTitle(pool);
+  const ranked = rankCandidatesForTonight(pool);
+  const shortlist = ranked.slice(0, AI_SHORTLIST_SIZE);
+
+  let pick = ranked[0];
+  let aiWhy: string | null = null;
+
+  // Optional: if GEMINI_API_KEY isn't set, or the call fails/times out/
+  // names something outside the shortlist, this returns null and the
+  // plain scoring-based pick above stands — same behavior as before AI
+  // integration existed.
+  const aiChoice = await chooseTonightsPick(
+    shortlist.map((c) => ({
+      id: c.row.id,
+      title: c.row.title,
+      mediaType: c.row.media_type,
+      genres: c.row.genre_ids.map((id) => genreName(id)),
+      overview: c.row.overview,
+      voteAverage: c.row.vote_average,
+    })),
+    {
+      likedGenres: [...pool.likedTitlesByGenre.keys()].map((id) => genreName(id)),
+      avoidGenres: [...pool.recentlyDislikedGenreIds].map((id) => genreName(id)),
+    }
+  );
+  if (aiChoice) {
+    const matched = shortlist.find((c) => c.row.id === aiChoice.titleId);
+    if (matched) {
+      pick = matched;
+      aiWhy = aiChoice.why;
+    }
+  }
+
   const rest = pool.scored.filter((c) => c.row.id !== pick.row.id);
 
   // "Also consider" should read as "because you're about to watch this",
@@ -308,9 +349,12 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
     return overlapB - overlapA || b.score - a.score;
   });
 
+  const recommendedPick = toRecommended(pick, pool, min, max);
+  if (aiWhy) recommendedPick.why = aiWhy;
+
   return {
     status: "ok",
-    pick: toRecommended(pick, pool, min, max),
+    pick: recommendedPick,
     discover: related.slice(0, DISCOVER_SIZE).map((c) => toRecommended(c, pool, min, max)),
     unrestricted: pool.unrestricted,
   };
