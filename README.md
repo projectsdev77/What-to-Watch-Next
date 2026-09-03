@@ -80,6 +80,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Testing
+
+```bash
+npm test
+```
+
+Unit tests (Vitest, no live Supabase/TMDB needed — the recommendation
+engine's tests inject a fake Supabase client rather than hitting a real
+database) covering the logic most worth protecting from silent
+regressions: password rules, TMDB provider-name normalization, the
+open-redirect guard, and the recommendation engine's scoring, feedback
+exclusion rules (skip cooldown vs. permanent), watchlist bonus, and
+"Also Consider" genre-overlap ranking. This isn't full coverage — there
+are no end-to-end/UI tests yet — but it's a real regression net for the
+part of this app most expensive to get wrong silently.
+
 ## Stack
 
 - [Next.js](https://nextjs.org) (App Router, TypeScript, Tailwind)
