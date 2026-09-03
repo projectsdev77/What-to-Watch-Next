@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-// "watched" (not "skipped") for the quiz's SEEN button: "skipped" means
-// "Not today" elsewhere in the app — a 24h snooze, not a permanent
-// exclusion — which would make a title marked SEEN here quietly
-// resurface as a "new" recommendation the next day.
-const RATEABLE_STATUSES = ["liked", "disliked", "watched"] as const;
+// Only real judgments go to the server. "Didn't Watch" has zero effect
+// by design (stays eligible, no taste-profile change) — see
+// quiz-batch.tsx, which handles it entirely client-side and never calls
+// this action for it.
+const RATEABLE_STATUSES = ["liked", "disliked"] as const;
 
 export async function rateTitleAction(formData: FormData) {
   const supabase = await createClient();
