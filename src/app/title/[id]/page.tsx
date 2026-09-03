@@ -125,6 +125,8 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
 
               <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
                 <WatchNowButton
+                  titleId={title.id}
+                  redirectTo={redirectTo}
                   matchingPlatforms={matchingPlatforms}
                   fallbackUrl={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
                 />

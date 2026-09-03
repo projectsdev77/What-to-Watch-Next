@@ -73,9 +73,10 @@ export function WatchlistButton({
   );
 }
 
-/** Like / Dislike / Watched / Not today — the four secondary rating
- * actions. Watchlist is handled separately by WatchlistButton so it can
- * sit on the primary action row next to Watch Now, matching the mock. */
+/** Don't like it / Another time — the two reaction buttons alongside
+ * Watch Now (which now itself records "watched" — see WatchNowButton)
+ * and Watchlist (handled separately by WatchlistButton, its own thing:
+ * "save for later" isn't the same as "ask me again tomorrow"). */
 export function FeedbackActions({
   titleId,
   redirectTo,
@@ -88,10 +89,20 @@ export function FeedbackActions({
   const cls = compact ? PILL_ON_GLASS_COMPACT : PILL_ON_GLASS;
   return (
     <div className={compact ? "flex flex-wrap gap-1.5" : "flex flex-wrap items-center gap-[9px]"}>
-      <ActionButton titleId={titleId} redirectTo={redirectTo} status="liked" label={compact ? "👍" : "Like"} className={cls} />
-      <ActionButton titleId={titleId} redirectTo={redirectTo} status="disliked" label={compact ? "👎" : "Dislike"} className={cls} />
-      <ActionButton titleId={titleId} redirectTo={redirectTo} status="watched" label={compact ? "✅" : "Watched"} className={cls} />
-      <ActionButton titleId={titleId} redirectTo={redirectTo} status="skipped" label={compact ? "🔁" : "Not today"} className={cls} />
+      <ActionButton
+        titleId={titleId}
+        redirectTo={redirectTo}
+        status="disliked"
+        label={compact ? "👎" : "Don't like it"}
+        className={cls}
+      />
+      <ActionButton
+        titleId={titleId}
+        redirectTo={redirectTo}
+        status="skipped"
+        label={compact ? "🔁" : "Another time"}
+        className={cls}
+      />
     </div>
   );
 }

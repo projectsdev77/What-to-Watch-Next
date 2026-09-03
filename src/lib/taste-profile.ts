@@ -2,24 +2,28 @@ import { createClient } from "@/lib/supabase/server";
 
 export type FeedbackStatus = "liked" | "disliked" | "skipped" | "watched" | "watchlisted";
 
+// "watched" carries the same weight as "liked" — clicking Watch Now is a
+// real behavioral commitment (stronger than an abstract Like, arguably),
+// and it's now the only positive signal on Tonight's Pick since there's
+// no separate Like button there anymore.
 const GENRE_WEIGHT_DELTA: Partial<Record<FeedbackStatus, number>> = {
   liked: 1,
   disliked: -0.5,
+  watched: 1,
 };
 
 /**
- * Records a user's reaction to a title and, for liked/disliked, nudges
- * their taste profile's genre weights incrementally. Only for use
+ * Records a user's reaction to a title and, for liked/disliked/watched,
+ * nudges their taste profile's genre weights incrementally. Only for use
  * post-onboarding — the onboarding quiz writes feedback directly and
  * computes the taste profile once in bulk at the end (see
  * src/app/onboarding/quiz/actions.ts), since a taste-profile row
  * existing is what marks onboarding as complete; creating one early
  * here would let a user skip the quiz's "Continue" step.
- */
-/**
- * No error-display UI of its own — called from submitPickFeedbackAction,
- * a plain form action with nowhere to show an inline error. A failure
- * throws instead of silently redirecting as if the feedback was saved,
+ *
+ * No error-display UI of its own — called from submitPickFeedbackAction
+ * and recordWatchedAction, neither of which have anywhere to show an
+ * inline error. A failure throws instead of silently succeeding,
  * surfacing on the existing error boundary (src/app/error.tsx) with its
  * retry button, rather than leaving the UI showing a reaction that was
  * never actually recorded.

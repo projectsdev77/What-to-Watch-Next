@@ -26,6 +26,25 @@ export async function submitPickFeedbackAction(formData: FormData) {
   redirect(redirectTo);
 }
 
+/**
+ * Records Watch Now as a real signal — called directly (not through a
+ * <form>) from WatchNowButton's onClick, fired alongside the external
+ * link opening in a new tab. Deliberately doesn't redirect(): the
+ * current tab isn't navigating anywhere, the new tab is the actual
+ * destination, so the caller just refreshes the current view once this
+ * resolves.
+ */
+export async function recordWatchedAction(titleId: number, redirectTo: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !titleId) return;
+
+  await recordTitleFeedback(user.id, titleId, "watched");
+  revalidatePath(redirectTo);
+}
+
 /** Clears any feedback on a title (e.g. removing it from the watchlist), making it a fresh candidate again. */
 export async function removeFeedbackAction(formData: FormData) {
   const supabase = await createClient();
