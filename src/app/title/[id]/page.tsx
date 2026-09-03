@@ -69,7 +69,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="flex flex-1 flex-col bg-sky">
       <AppHeader />
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 sm:px-10 sm:py-10">
+      <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col justify-center px-4 py-8 sm:px-10 sm:py-10">
         <div className="relative p-[10px] sm:p-[22px]">
           {/* Own overflow-hidden layer, separate from the card itself —
               the Watchlist picker below needs to be able to pop out past
