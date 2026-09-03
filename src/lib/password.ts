@@ -15,3 +15,19 @@ export function passwordError(password: string): string | null {
   if (!/[0-9]/.test(password)) return "Password must include a number.";
   return null;
 }
+
+export interface PasswordRequirement {
+  label: string;
+  met: boolean;
+}
+
+/** Same rules as passwordError(), broken out per-requirement for a live
+ * checklist UI instead of a single first-failure message. */
+export function getPasswordRequirements(password: string): PasswordRequirement[] {
+  return [
+    { label: `At least ${PASSWORD_MIN_LENGTH} characters`, met: password.length >= PASSWORD_MIN_LENGTH },
+    { label: "One lowercase letter", met: /[a-z]/.test(password) },
+    { label: "One uppercase letter", met: /[A-Z]/.test(password) },
+    { label: "One number", met: /[0-9]/.test(password) },
+  ];
+}

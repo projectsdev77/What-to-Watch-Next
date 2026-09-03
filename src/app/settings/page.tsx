@@ -71,11 +71,8 @@ export default async function SettingsPage({
             </form>
           </div>
 
-          <div className="flex flex-col gap-[13px] border-t-4 border-danger bg-card p-7 shadow-card">
-            <span className="text-[12.5px] font-bold tracking-[.16em] text-danger">DELETE ACCOUNT</span>
-            <p className="text-[14px] leading-[1.65] text-text-2">
-              Permanently delete your account and all associated data. This action cannot be undone.
-            </p>
+          <div className="flex flex-col gap-2 px-1">
+            <span className="text-[11px] font-semibold tracking-[.14em] text-text-3">ACCOUNT</span>
             <DeleteAccountForm />
           </div>
         </div>

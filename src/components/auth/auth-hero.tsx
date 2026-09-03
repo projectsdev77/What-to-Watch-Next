@@ -46,7 +46,11 @@ export function AuthHero({
           </span>
         </div>
 
-        <div className="relative flex min-h-[560px] items-center justify-center px-4 py-24">
+        {/* items-start + a fixed top offset (rather than items-center)
+            guarantees the card never grows up into the tagline above it,
+            regardless of how tall the card's content gets (e.g. the
+            signup form's password checklist). */}
+        <div className="relative flex min-h-[560px] items-start justify-center px-4 pt-[128px] pb-16 sm:pt-[150px]">
           {children}
         </div>
 

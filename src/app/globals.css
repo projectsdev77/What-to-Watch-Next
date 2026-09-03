@@ -17,6 +17,8 @@
   --card: #ffffff;
   --danger: #b5432e; /* reset only */
   --danger-ink: #6b1d0f;
+  --success: #2f7a4f; /* satisfied checklist items only */
+  --success-ink: #1f5636;
 
   --text-1: #0c2334;
   --text-2: rgba(12, 35, 52, 0.7);
@@ -53,6 +55,8 @@
   --color-card: var(--card);
   --color-danger: var(--danger);
   --color-danger-ink: var(--danger-ink);
+  --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
   --color-text-1: var(--text-1);
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);

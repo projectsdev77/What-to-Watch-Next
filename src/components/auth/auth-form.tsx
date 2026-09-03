@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signInAction, signUpAction, type AuthState } from "@/app/login/actions";
 import { FloatingLabelInput } from "@/components/auth/floating-label-input";
-import { PASSWORD_REQUIREMENTS_HINT } from "@/lib/password";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const action = mode === "login" ? signInAction : signUpAction;
@@ -12,6 +12,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     action,
     undefined
   );
+  const [password, setPassword] = useState("");
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -30,6 +31,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           name="password"
           type="password"
           required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           // Only enforce a minimum length when creating a password (signup).
           // On login we should just attempt auth with whatever was typed —
           // gating on length there produced a confusing "too short" message
@@ -46,9 +49,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </Link>
         )}
       </div>
-      {mode === "signup" && (
-        <p className="-mt-2 text-[12.5px] text-text-3">{PASSWORD_REQUIREMENTS_HINT}</p>
-      )}
+      {mode === "signup" && <PasswordRequirements password={password} />}
       {state && (
         <p
           className={

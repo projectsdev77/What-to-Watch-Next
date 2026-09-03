@@ -2,14 +2,15 @@
 
 import { updatePasswordAction, type UpdatePasswordState } from "@/app/reset-password/actions";
 import { FloatingLabelInput } from "@/components/auth/floating-label-input";
-import { PASSWORD_REQUIREMENTS_HINT } from "@/lib/password";
-import { useActionState } from "react";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
+import { useActionState, useState } from "react";
 
 export function ResetPasswordForm() {
   const [state, formAction, pending] = useActionState<UpdatePasswordState | undefined, FormData>(
     updatePasswordAction,
     undefined
   );
+  const [password, setPassword] = useState("");
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -20,6 +21,8 @@ export function ResetPasswordForm() {
         type="password"
         required
         minLength={8}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         autoComplete="new-password"
       />
       <FloatingLabelInput
@@ -31,7 +34,7 @@ export function ResetPasswordForm() {
         minLength={8}
         autoComplete="new-password"
       />
-      <p className="-mt-2 text-[12.5px] text-text-3">{PASSWORD_REQUIREMENTS_HINT}</p>
+      <PasswordRequirements password={password} />
       {state && <p className="text-[13px] font-medium text-danger-ink">{state.message}</p>}
       <button
         type="submit"
