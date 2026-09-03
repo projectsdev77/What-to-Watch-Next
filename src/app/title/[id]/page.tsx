@@ -69,7 +69,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="flex flex-1 flex-col bg-sky">
       <AppHeader />
-      <main className="mx-auto w-full max-w-[1000px] flex-1 px-4 py-8 sm:px-10 sm:py-10">
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 sm:px-10 sm:py-10">
         <div className="relative p-[10px] sm:p-[22px]">
           {/* Own overflow-hidden layer, separate from the card itself —
               the Watchlist picker below needs to be able to pop out past
@@ -90,13 +90,13 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
           </div>
 
           <div className="glass-crystal relative flex flex-col gap-[18px] p-6 sm:flex-row sm:gap-[26px]">
-            <div className="relative mx-auto aspect-[2/3] w-[150px] shrink-0 overflow-hidden rounded-[14px] shadow-[0_16px_38px_rgba(12,35,52,.3)] sm:mx-0 sm:w-[190px]">
+            <div className="relative mx-auto aspect-[2/3] w-[150px] shrink-0 overflow-hidden rounded-[14px] shadow-[0_16px_38px_rgba(12,35,52,.3)] sm:mx-0 sm:w-[230px]">
               {title.poster_path && (
                 <Image
                   src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
                   alt={title.title}
                   fill
-                  sizes="190px"
+                  sizes="230px"
                   className="object-cover"
                 />
               )}
@@ -123,7 +123,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
               </div>
 
               {title.overview && (
-                <p className="max-w-[62ch] text-[14.5px] leading-[1.65] text-text-2">{title.overview}</p>
+                <p className="max-w-[75ch] text-[14.5px] leading-[1.65] text-text-2">{title.overview}</p>
               )}
 
               {title.cast_names && (title.cast_names as string[]).length > 0 && (
