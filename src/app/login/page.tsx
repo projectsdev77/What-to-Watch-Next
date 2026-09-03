@@ -19,18 +19,7 @@ export default async function LoginPage({
   const isSignup = mode === "signup";
 
   return (
-    <AuthHero
-      tagline={isSignup ? "TAKE THE TASTE QUIZ AFTER SIGN UP" : "LOG IN TO SEE TONIGHT'S PICK"}
-      slogan={
-        isSignup ? undefined : (
-          <>
-            STOP SCROLLING
-            <br />
-            START WATCHING
-          </>
-        )
-      }
-    >
+    <AuthHero tagline={isSignup ? "TAKE THE TASTE QUIZ AFTER SIGN UP" : "LOG IN TO SEE TONIGHT'S PICK"}>
       <div className="w-full max-w-[380px] bg-card px-8 py-9 shadow-panel">
         {accountDeleted === "true" && (
           <p className="mb-5 text-[13px] font-medium text-steel-dark">

@@ -18,16 +18,7 @@ export default async function ForgotPasswordPage({
   const { sent } = await searchParams;
 
   return (
-    <AuthHero
-      tagline="RECOVER YOUR ACCOUNT"
-      slogan={
-        <>
-          NEVER MISS
-          <br />
-          TONIGHT&apos;S PICK
-        </>
-      }
-    >
+    <AuthHero tagline="RECOVER YOUR ACCOUNT">
       <div className="w-full max-w-[420px] bg-card px-8 py-9 shadow-panel">
         {sent === "true" ? (
           <div className="flex flex-col gap-5">

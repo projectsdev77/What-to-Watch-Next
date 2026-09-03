@@ -10,16 +10,7 @@ export default async function ResetPasswordPage({
   const { success, error } = await searchParams;
 
   return (
-    <AuthHero
-      tagline="RESET YOUR PASSWORD"
-      slogan={
-        <>
-          SECURE YOUR
-          <br />
-          ACCOUNT
-        </>
-      }
-    >
+    <AuthHero tagline="RESET YOUR PASSWORD">
       <div className="w-full max-w-[420px] bg-card px-8 py-9 shadow-panel">
         {success === "true" ? (
           <div className="flex flex-col gap-5">
