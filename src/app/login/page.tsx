@@ -7,7 +7,7 @@ import { AuthHero } from "@/components/auth/auth-hero";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; accountDeleted?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -15,7 +15,7 @@ export default async function LoginPage({
   } = await supabase.auth.getUser();
   if (user) redirect("/");
 
-  const { mode } = await searchParams;
+  const { mode, accountDeleted } = await searchParams;
   const isSignup = mode === "signup";
 
   return (
@@ -32,6 +32,11 @@ export default async function LoginPage({
       }
     >
       <div className="w-full max-w-[380px] bg-card px-8 py-9 shadow-panel">
+        {accountDeleted === "true" && (
+          <p className="mb-5 text-[13px] font-medium text-steel-dark">
+            Your account has been permanently deleted.
+          </p>
+        )}
         <div className="mb-5 flex flex-col gap-5">
           <AuthForm mode={isSignup ? "signup" : "login"} />
         </div>
