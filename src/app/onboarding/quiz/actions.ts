@@ -19,10 +19,11 @@ export async function rateTitleAction(formData: FormData) {
     return;
   }
 
-  await supabase.from("user_title_feedback").upsert(
+  const { error } = await supabase.from("user_title_feedback").upsert(
     { user_id: user.id, title_id: titleId, status, updated_at: new Date().toISOString() },
     { onConflict: "user_id,title_id" }
   );
+  if (error) throw new Error(`Failed to record quiz rating: ${error.message}`);
 
   revalidatePath("/onboarding/quiz");
 }
@@ -58,10 +59,17 @@ export async function finishQuizAction() {
     }
   }
 
-  await supabase.from("user_taste_profile").upsert(
+  // Critical: a user_taste_profile row existing is what marks onboarding
+  // as complete (see src/lib/onboarding.ts). An unchecked failure here
+  // would redirect to "/" anyway, which would then bounce right back to
+  // /onboarding/quiz with no explanation — instead throw, surfacing on
+  // the existing error boundary (src/app/error.tsx) with its retry
+  // button.
+  const { error } = await supabase.from("user_taste_profile").upsert(
     { user_id: user.id, genre_weights: genreWeights, updated_at: new Date().toISOString() },
     { onConflict: "user_id" }
   );
+  if (error) throw new Error(`Failed to save taste profile: ${error.message}`);
 
   redirect("/");
 }

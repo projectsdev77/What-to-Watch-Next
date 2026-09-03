@@ -16,15 +16,24 @@ const GENRE_WEIGHT_DELTA: Partial<Record<FeedbackStatus, number>> = {
  * existing is what marks onboarding as complete; creating one early
  * here would let a user skip the quiz's "Continue" step.
  */
+/**
+ * No error-display UI of its own — called from submitPickFeedbackAction,
+ * a plain form action with nowhere to show an inline error. A failure
+ * throws instead of silently redirecting as if the feedback was saved,
+ * surfacing on the existing error boundary (src/app/error.tsx) with its
+ * retry button, rather than leaving the UI showing a reaction that was
+ * never actually recorded.
+ */
 export async function recordTitleFeedback(userId: string, titleId: number, status: FeedbackStatus) {
   const supabase = await createClient();
 
-  await supabase
+  const { error: feedbackError } = await supabase
     .from("user_title_feedback")
     .upsert(
       { user_id: userId, title_id: titleId, status, updated_at: new Date().toISOString() },
       { onConflict: "user_id,title_id" }
     );
+  if (feedbackError) throw new Error(`Failed to record feedback: ${feedbackError.message}`);
 
   const delta = GENRE_WEIGHT_DELTA[status];
   if (!delta) return;
@@ -40,10 +49,11 @@ export async function recordTitleFeedback(userId: string, titleId: number, statu
     weights[genreId] = (weights[genreId] ?? 0) + delta;
   }
 
-  await supabase
+  const { error: profileError } = await supabase
     .from("user_taste_profile")
     .upsert(
       { user_id: userId, genre_weights: weights, updated_at: new Date().toISOString() },
       { onConflict: "user_id" }
     );
+  if (profileError) throw new Error(`Failed to update taste profile: ${profileError.message}`);
 }

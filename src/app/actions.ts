@@ -38,7 +38,16 @@ export async function removeFeedbackAction(formData: FormData) {
   const redirectTo = safeRedirectTarget(formData);
   if (!titleId) redirect(redirectTo);
 
-  await supabase.from("user_title_feedback").delete().eq("user_id", user.id).eq("title_id", titleId);
+  // No error-display UI here (a plain form button) — a failure throws
+  // instead of silently redirecting as if it worked, surfacing on the
+  // existing error boundary (src/app/error.tsx) with its retry button,
+  // rather than leaving the title looking removed when it wasn't.
+  const { error } = await supabase
+    .from("user_title_feedback")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("title_id", titleId);
+  if (error) throw new Error(`Failed to remove feedback: ${error.message}`);
 
   revalidatePath(redirectTo);
   redirect(redirectTo);

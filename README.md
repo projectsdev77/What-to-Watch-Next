@@ -44,6 +44,27 @@ confident "watch this tonight" pick instead of an endless scroll.
   above) is the recommended upgrade path if that experience matters
   enough to justify the cost.
 
+## Reliability notes
+
+- **Rate limiting** on sign-in, sign-up, and password-reset requests
+  (`src/lib/rate-limit.ts`) is in-memory — real protection for a single
+  running process, but each serverless instance in a production
+  multi-instance deployment (e.g. Vercel) has its own separate memory,
+  so counts aren't shared across instances. Fine for now; the real
+  production path once this is deployed at scale is a shared store —
+  [Upstash Redis](https://upstash.com) has a free tier and a drop-in
+  `@upstash/ratelimit` package built for exactly this. `checkRateLimit()`
+  is the one function call sites depend on, so that's the only thing
+  that would need to change.
+- **Error monitoring** (Sentry or similar) isn't wired up — deliberately
+  out of scope for now since it needs a real external account either
+  way. Mutating Server Actions do check every Supabase call's `error`
+  and either return a friendly message (for the ones with an error UI
+  already, like the platform pickers) or throw (for the ones without,
+  like feedback/rating actions) so a failure surfaces on the existing
+  error boundary (`src/app/error.tsx`, with its retry button) instead of
+  silently succeeding with nothing actually saved.
+
 ## Feasibility notes (read before extending scope)
 
 The original product brief described "integrating directly with your

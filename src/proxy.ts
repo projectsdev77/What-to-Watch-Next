@@ -29,7 +29,16 @@ export async function proxy(request: NextRequest) {
   );
 
   // Required: touching the session is what triggers a refresh when needed.
-  await supabase.auth.getUser();
+  // This runs on every request, so a transient Supabase outage here must
+  // not take the whole site down with a raw framework error — fail open
+  // (treat as unauthenticated) and let each page's own auth check handle
+  // it, rather than crashing before any page even gets a chance to
+  // render its own error boundary.
+  try {
+    await supabase.auth.getUser();
+  } catch (error) {
+    console.error("Proxy: failed to refresh session:", error);
+  }
 
   return response;
 }
