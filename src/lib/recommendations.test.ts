@@ -34,7 +34,7 @@ function title(id: number, genreIds: number[], voteAverage: number, name = `Titl
 
 interface FeedbackFixture {
   title_id: number;
-  status: "liked" | "disliked" | "skipped" | "watched" | "watchlisted";
+  status: "liked" | "disliked" | "skipped" | "watched";
   updated_at: string;
   titles?: { title: string; genre_ids: number[] } | null;
 }
@@ -48,6 +48,7 @@ function makeFakeSupabase(fixtures: {
   userPlatforms?: string[];
   genreWeights?: Record<string, number> | null;
   feedback?: FeedbackFixture[];
+  watchlisted?: number[];
   availability?: { title_id: number; platform_name: string }[];
   candidateTitles?: TitleFixture[];
   titlesTotalCount?: number;
@@ -77,6 +78,9 @@ function makeFakeSupabase(fixtures: {
       }
       if (tableName === "user_title_feedback") {
         return chain(() => ({ data: fixtures.feedback ?? [] }));
+      }
+      if (tableName === "watchlist_items") {
+        return chain(() => ({ data: (fixtures.watchlisted ?? []).map((title_id) => ({ title_id })) }));
       }
       if (tableName === "title_availability") {
         return chain(() => ({ data: fixtures.availability ?? [] }));
@@ -223,7 +227,7 @@ describe("getTonightsPick — scoring", () => {
       availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
       candidateTitles: titles,
       genreWeights: {},
-      feedback: [{ title_id: 1, status: "watchlisted", updated_at: new Date().toISOString() }],
+      watchlisted: [1],
     });
 
     const result = await getTonightsPick("u1");

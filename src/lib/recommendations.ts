@@ -71,7 +71,7 @@ async function getCandidatePool(
   userId: string,
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<CandidatePool | { status: CandidateStatus }> {
-  const [{ data: userPlatforms }, { data: tasteProfile }, { data: feedbackRows }, { count: titleCount }] =
+  const [{ data: userPlatforms }, { data: tasteProfile }, { data: feedbackRows }, { count: titleCount }, { data: watchlistRows }] =
     await Promise.all([
       supabase.from("user_platforms").select("platform_name").eq("user_id", userId),
       supabase.from("user_taste_profile").select("genre_weights").eq("user_id", userId).maybeSingle(),
@@ -80,6 +80,10 @@ async function getCandidatePool(
         .select("title_id, status, updated_at, titles(id, title, genre_ids)")
         .eq("user_id", userId),
       supabase.from("titles").select("*", { count: "exact", head: true }),
+      // A title on ANY of the user's watchlists gets the bonus below —
+      // "I want to watch this" doesn't depend on which named list it's
+      // filed under (see supabase/migrations/0004_multiple_watchlists.sql).
+      supabase.from("watchlist_items").select("title_id").eq("user_id", userId),
     ]);
 
   const platformNames = (userPlatforms ?? []).map((p) => p.platform_name as string);
@@ -104,18 +108,16 @@ async function getCandidatePool(
   // back tomorrow, not vanish forever.
   const skipCutoff = Date.now() - SKIP_COOLDOWN_HOURS * 60 * 60 * 1000;
   const excludedIds = new Set<number>();
-  const watchlistedIds = new Set<number>();
   for (const row of feedbackRows ?? []) {
     const titleId = row.title_id as number;
-    if (row.status === "watchlisted") {
-      watchlistedIds.add(titleId);
-    } else if (row.status === "skipped") {
+    if (row.status === "skipped") {
       const skippedAt = new Date(row.updated_at as string).getTime();
       if (skippedAt > skipCutoff) excludedIds.add(titleId);
     } else {
       excludedIds.add(titleId);
     }
   }
+  const watchlistedIds = new Set((watchlistRows ?? []).map((row) => row.title_id as number));
 
   const availabilityQuery = supabase
     .from("title_availability")

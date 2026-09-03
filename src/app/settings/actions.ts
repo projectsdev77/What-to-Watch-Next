@@ -48,11 +48,13 @@ export async function updatePlatformsAction(
 }
 
 /**
- * Wipes all ratings/history and the derived taste profile, sending the
- * user back through the taste quiz. Has no error-display UI of its own
- * (a plain form button, not a useActionState form) — a failure here
- * throws instead of silently redirecting as if it worked, surfacing on
- * the existing error boundary (src/app/error.tsx) with its retry button.
+ * Wipes all ratings/history, every watchlist, and the derived taste
+ * profile, sending the user back through the taste quiz — matches what
+ * its own button copy on the Settings page promises ("clears every
+ * rating and watchlist entry"). Has no error-display UI of its own (a
+ * plain form button, not a useActionState form) — a failure here throws
+ * instead of silently redirecting as if it worked, surfacing on the
+ * existing error boundary (src/app/error.tsx) with its retry button.
  */
 export async function resetTasteProfileAction() {
   const supabase = await createClient();
@@ -63,6 +65,11 @@ export async function resetTasteProfileAction() {
 
   const { error: feedbackError } = await supabase.from("user_title_feedback").delete().eq("user_id", user.id);
   if (feedbackError) throw new Error(`Failed to clear feedback: ${feedbackError.message}`);
+
+  // Deleting the watchlists themselves (not just their items) cascades
+  // watchlist_items too — see supabase/migrations/0004_multiple_watchlists.sql.
+  const { error: watchlistError } = await supabase.from("watchlists").delete().eq("user_id", user.id);
+  if (watchlistError) throw new Error(`Failed to clear watchlists: ${watchlistError.message}`);
 
   const { error: profileError } = await supabase.from("user_taste_profile").delete().eq("user_id", user.id);
   if (profileError) throw new Error(`Failed to clear taste profile: ${profileError.message}`);

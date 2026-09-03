@@ -1,4 +1,5 @@
-import { submitPickFeedbackAction, removeFeedbackAction } from "@/app/actions";
+import { submitPickFeedbackAction } from "@/app/actions";
+import { addToDefaultWatchlistAction, removeFromAllWatchlistsAction } from "@/app/watchlist/actions";
 
 interface ActionButtonProps {
   titleId: number;
@@ -34,6 +35,8 @@ const PILL_ON_GLASS =
 const PILL_ON_GLASS_COMPACT =
   "rounded-full border border-white/85 bg-white/55 px-3 py-1.5 text-xs font-semibold text-ink";
 
+/** Quick one-click save — goes to the user's default (first) list. For
+ * managing multiple named lists, see the Watchlist page itself. */
 export function WatchlistButton({
   titleId,
   redirectTo,
@@ -45,31 +48,20 @@ export function WatchlistButton({
   isWatchlisted: boolean;
   compact?: boolean;
 }) {
-  return isWatchlisted ? (
-    <ActionButton
-      titleId={titleId}
-      redirectTo={redirectTo}
-      status="watchlisted"
-      action={removeFeedbackAction}
-      label={compact ? "🔖✓" : "ON WATCHLIST — REMOVE"}
-      className={
-        compact
-          ? PILL_ON_GLASS_COMPACT
-          : "rounded-full border border-white bg-white/70 px-[26px] py-[14px] text-[13px] font-bold tracking-[.1em] text-ink"
-      }
-    />
-  ) : (
-    <ActionButton
-      titleId={titleId}
-      redirectTo={redirectTo}
-      status="watchlisted"
-      label={compact ? "🔖" : "WATCHLIST"}
-      className={
-        compact
-          ? PILL_ON_GLASS_COMPACT
-          : "rounded-full border border-white bg-white/70 px-[26px] py-[14px] text-[13px] font-bold tracking-[.1em] text-ink"
-      }
-    />
+  const cls = compact
+    ? PILL_ON_GLASS_COMPACT
+    : "rounded-full border border-white bg-white/70 px-[26px] py-[14px] text-[13px] font-bold tracking-[.1em] text-ink";
+  const action = isWatchlisted ? removeFromAllWatchlistsAction : addToDefaultWatchlistAction;
+  const label = isWatchlisted ? (compact ? "🔖✓" : "ON WATCHLIST — REMOVE") : compact ? "🔖" : "WATCHLIST";
+
+  return (
+    <form action={action}>
+      <input type="hidden" name="titleId" value={titleId} />
+      <input type="hidden" name="redirectTo" value={redirectTo} />
+      <button type="submit" className={cls}>
+        {label}
+      </button>
+    </form>
   );
 }
 

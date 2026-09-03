@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type FeedbackStatus = "liked" | "disliked" | "skipped" | "watched" | "watchlisted";
+export type FeedbackStatus = "liked" | "disliked" | "skipped" | "watched";
 
 // "watched" carries the same weight as "liked" — clicking Watch Now is a
 // real behavioral commitment (stronger than an abstract Like, arguably),

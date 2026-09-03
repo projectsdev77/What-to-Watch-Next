@@ -19,7 +19,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   const titleId = Number(id);
   if (!titleId) notFound();
 
-  const [{ data: title }, { data: availabilityRows }, { data: feedback }, { data: userPlatformRows }] =
+  const [{ data: title }, { data: availabilityRows }, { data: feedback }, { data: userPlatformRows }, { data: watchlistRows }] =
     await Promise.all([
       supabase
         .from("titles")
@@ -40,13 +40,14 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
         .eq("title_id", titleId)
         .maybeSingle(),
       supabase.from("user_platforms").select("platform_name").eq("user_id", user.id),
+      supabase.from("watchlist_items").select("title_id").eq("user_id", user.id).eq("title_id", titleId).limit(1),
     ]);
 
   if (!title) notFound();
 
   const platforms = [...new Set((availabilityRows ?? []).map((r) => r.platform_name as string))];
   const redirectTo = `/title/${titleId}`;
-  const isWatchlisted = feedback?.status === "watchlisted";
+  const isWatchlisted = (watchlistRows ?? []).length > 0;
 
   // "Other" isn't a real platform to build a Watch Now picker from —
   // when that's all the user picked, there's nothing to filter to, so
