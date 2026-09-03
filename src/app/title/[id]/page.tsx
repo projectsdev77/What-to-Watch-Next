@@ -70,18 +70,24 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
     <div className="flex flex-1 flex-col bg-sky">
       <AppHeader />
       <main className="mx-auto w-full max-w-[1000px] flex-1 px-4 py-8 sm:px-10 sm:py-10">
-        <div className="relative overflow-hidden p-[10px] sm:p-[22px]">
-          {title.poster_path && (
-            <Image
-              src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
-              alt=""
-              aria-hidden
-              fill
-              sizes="100vw"
-              className="scale-125 object-cover blur-2xl brightness-75"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-r from-ink/35 to-steel/25" />
+        <div className="relative p-[10px] sm:p-[22px]">
+          {/* Own overflow-hidden layer, separate from the card itself —
+              the Watchlist picker below needs to be able to pop out past
+              the card's edges without the scaled/blurred backdrop's crop
+              clipping it too. */}
+          <div className="absolute inset-0 overflow-hidden">
+            {title.poster_path && (
+              <Image
+                src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
+                alt=""
+                aria-hidden
+                fill
+                sizes="100vw"
+                className="scale-125 object-cover blur-2xl brightness-75"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-ink/35 to-steel/25" />
+          </div>
 
           <div className="glass-crystal relative flex flex-col gap-[18px] p-6 sm:flex-row sm:gap-[26px]">
             <div className="relative mx-auto aspect-[2/3] w-[150px] shrink-0 overflow-hidden rounded-[14px] shadow-[0_16px_38px_rgba(12,35,52,.3)] sm:mx-0 sm:w-[190px]">

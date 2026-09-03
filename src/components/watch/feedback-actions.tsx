@@ -95,7 +95,7 @@ export function WatchlistButton({
       >
         {compact ? "🔖" : "WATCHLIST"}
       </summary>
-      <div className="absolute top-[calc(100%+6px)] left-0 z-10 flex min-w-[190px] flex-col gap-1 bg-card p-2 shadow-panel">
+      <div className="absolute top-[calc(100%+6px)] left-0 z-10 flex max-h-[260px] min-w-[190px] flex-col gap-1 overflow-y-auto bg-card p-2 shadow-panel">
         <span className="px-2 pt-1 pb-1.5 text-[11px] font-bold tracking-[.1em] text-text-3">ADD TO WHICH LIST?</span>
         {lists.map((list) => (
           <form key={list.id} action={addToListAction}>

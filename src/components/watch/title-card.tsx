@@ -73,18 +73,24 @@ function FeaturedCard({
   // the "artwork behind the glass" the design system requires (real
   // image data, not a placeholder).
   return (
-    <div className="relative flex min-h-[400px] items-end overflow-hidden p-[10px] sm:p-[22px]">
-      {title.posterPath && (
-        <Image
-          src={`${TMDB_POSTER_BASE_URL}${title.posterPath}`}
-          alt=""
-          aria-hidden
-          fill
-          sizes="100vw"
-          className="scale-125 object-cover blur-2xl brightness-75"
-        />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-r from-ink/35 to-steel/25" />
+    <div className="relative flex min-h-[400px] items-end p-[10px] sm:p-[22px]">
+      {/* Own overflow-hidden layer, separate from the card itself — the
+          Watchlist picker below needs to be able to pop out past the
+          card's edges without the scaled/blurred backdrop's crop
+          clipping it too. */}
+      <div className="absolute inset-0 overflow-hidden">
+        {title.posterPath && (
+          <Image
+            src={`${TMDB_POSTER_BASE_URL}${title.posterPath}`}
+            alt=""
+            aria-hidden
+            fill
+            sizes="100vw"
+            className="scale-125 object-cover blur-2xl brightness-75"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-ink/35 to-steel/25" />
+      </div>
 
       <div className="glass-crystal relative flex w-full flex-col gap-[18px] p-6 sm:flex-row sm:gap-[26px]">
         <Link
