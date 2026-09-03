@@ -30,10 +30,15 @@ function ActionButton({
   );
 }
 
+// These sit on the frosted glass-crystal panel (not a raw photo
+// backdrop), where a near-white border/fill on near-white glass was
+// nearly invisible — an ink-tinted border plus an opaque fill and a
+// light lift shadow reads as a real button there while staying quieter
+// than Watch Now's solid-ink primary treatment.
 const PILL_ON_GLASS =
-  "rounded-full border border-white/85 bg-white/55 px-[22px] py-[11px] text-[13px] font-semibold text-ink";
+  "rounded-full border border-[rgba(12,35,52,.22)] bg-white px-[22px] py-[11px] text-[13px] font-semibold text-ink shadow-[0_2px_8px_rgba(12,35,52,.1)]";
 const PILL_ON_GLASS_COMPACT =
-  "rounded-full border border-white/85 bg-white/55 px-3 py-1.5 text-xs font-semibold text-ink";
+  "rounded-full border border-[rgba(12,35,52,.22)] bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-[0_2px_8px_rgba(12,35,52,.1)]";
 
 /** One-click save when there's nothing to choose between (already saved,
  * or the user has at most one list) — goes straight to the user's
@@ -57,7 +62,7 @@ export function WatchlistButton({
 }) {
   const cls = compact
     ? PILL_ON_GLASS_COMPACT
-    : "rounded-full border border-white bg-white/70 px-[26px] py-[14px] text-[13px] font-bold tracking-[.1em] text-ink";
+    : "rounded-full border border-[rgba(12,35,52,.22)] bg-white px-[26px] py-[14px] text-[13px] font-bold tracking-[.1em] text-ink shadow-[0_2px_8px_rgba(12,35,52,.1)]";
 
   if (isWatchlisted) {
     return (
