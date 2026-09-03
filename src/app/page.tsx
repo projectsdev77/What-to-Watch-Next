@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getTonightsPick, type CandidateStatus } from "@/lib/recommendations";
+import { parseMediaType } from "@/lib/tmdb";
 import { TitleCard } from "@/components/watch/title-card";
 import { AppHeader } from "@/components/chrome/app-header";
+import { MediaTypeTabs } from "@/components/chrome/media-type-tabs";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,29 +19,33 @@ export default async function Home() {
   if (!hasPlatforms) redirect("/onboarding/platforms");
   if (!hasTasteProfile) redirect("/onboarding/quiz");
 
-  const result = await getTonightsPick(user.id);
+  const mediaType = parseMediaType((await searchParams).type);
+  const redirectTo = mediaType === "movie" ? "/" : "/?type=tv";
+
+  const result = await getTonightsPick(user.id, mediaType);
 
   return (
     <div className="flex flex-1 flex-col bg-sky">
       <AppHeader active="/" />
+      <MediaTypeTabs active={mediaType} basePath="/" />
       {result.status !== "ok" ? (
         <EmptyState status={result.status} />
       ) : (
         <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-[34px] px-4 py-8 sm:px-10 sm:py-10">
-          <TitleCard title={result.pick} redirectTo="/" featured unrestricted={result.unrestricted} />
+          <TitleCard title={result.pick} redirectTo={redirectTo} featured unrestricted={result.unrestricted} />
 
           {result.discover.length > 0 && (
             <section className="flex flex-col gap-4">
               <div className="flex items-baseline gap-4">
                 <h2 className="font-heading text-[15px] font-semibold tracking-[.18em]">ALSO CONSIDER</h2>
                 <div className="h-[2px] flex-1 bg-steel" />
-                <Link href="/browse" className="text-[13px] font-semibold text-steel-dark">
+                <Link href={`/browse${mediaType === "tv" ? "?type=tv" : ""}`} className="text-[13px] font-semibold text-steel-dark">
                   Browse all
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
                 {result.discover.map((title) => (
-                  <TitleCard key={title.id} title={title} redirectTo="/" />
+                  <TitleCard key={title.id} title={title} redirectTo={redirectTo} />
                 ))}
               </div>
             </section>

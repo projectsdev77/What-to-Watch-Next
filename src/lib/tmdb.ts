@@ -13,6 +13,13 @@ export const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w342";
 
 export type MediaType = "movie" | "tv";
 
+/** Reads a "type" URL search param into a real MediaType, defaulting to
+ * "movie" for anything missing or unrecognized — used by the Movies/TV
+ * Shows tabs on the home and browse pages. */
+export function parseMediaType(value: string | undefined): MediaType {
+  return value === "tv" ? "tv" : "movie";
+}
+
 function requireApiKey(): string {
   const key = process.env.TMDB_API_KEY;
   if (!key) {

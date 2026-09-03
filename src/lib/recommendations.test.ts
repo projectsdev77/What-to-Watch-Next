@@ -18,11 +18,17 @@ interface TitleFixture {
   justwatch_link: string | null;
 }
 
-function title(id: number, genreIds: number[], voteAverage: number, name = `Title ${id}`): TitleFixture {
+function title(
+  id: number,
+  genreIds: number[],
+  voteAverage: number,
+  name = `Title ${id}`,
+  mediaType: "movie" | "tv" = "movie"
+): TitleFixture {
   return {
     id,
     tmdb_id: id,
-    media_type: "movie",
+    media_type: mediaType,
     title: name,
     overview: null,
     poster_path: null,
@@ -88,12 +94,18 @@ function makeFakeSupabase(fixtures: {
       if (tableName === "titles") {
         let wantsCountOnly = false;
         let filterIds: number[] | null = null;
+        let filterMediaType: string | null = null;
         const node: Record<string, unknown> = {
           select: (_cols: string, opts?: { head?: boolean }) => {
             wantsCountOnly = !!opts?.head;
             return node;
           },
-          eq: () => node,
+          // Real code only calls .eq("media_type", ...) on this branch
+          // (the exact-count query never filters), so it's unambiguous.
+          eq: (col: string, value: string) => {
+            if (col === "media_type") filterMediaType = value;
+            return node;
+          },
           // The real query does .in("id", candidateIds) to fetch only
           // the still-eligible titles — a fake that ignored this and
           // always returned every candidateTitle would silently hide
@@ -107,9 +119,9 @@ function makeFakeSupabase(fixtures: {
             const result = wantsCountOnly
               ? { count: fixtures.titlesTotalCount ?? fixtures.candidateTitles?.length ?? 0 }
               : {
-                  data: filterIds
-                    ? (fixtures.candidateTitles ?? []).filter((t) => filterIds!.includes(t.id))
-                    : (fixtures.candidateTitles ?? []),
+                  data: (fixtures.candidateTitles ?? [])
+                    .filter((t) => !filterIds || filterIds!.includes(t.id))
+                    .filter((t) => !filterMediaType || t.media_type === filterMediaType),
                 };
             return Promise.resolve(result).then(onFulfilled, onRejected);
           },
@@ -283,6 +295,58 @@ describe("getTonightsPick — scoring", () => {
     const result = await getTonightsPick("u1");
     if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
     expect(result.pick.id).toBe(2); // still the higher-scored of the two, penalty or not
+  });
+});
+
+describe("getTonightsPick / getDiscoverList — media type split", () => {
+  it("getTonightsPick only picks from the requested media type, even when the other type scores higher", async () => {
+    const titles = [
+      title(1, [28], 9.0, "Top Movie", "movie"),
+      title(2, [28], 5.0, "Lower TV Show", "tv"),
+    ];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      genreWeights: {},
+    });
+
+    const result = await getTonightsPick("u1", "tv");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.pick.id).toBe(2);
+    expect(result.pick.mediaType).toBe("tv");
+  });
+
+  it("getTonightsPick reports all-rated when the requested type has nothing eligible, even if the other type does", async () => {
+    const titles = [title(1, [28], 9.0, "Only Movie", "movie")];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      genreWeights: {},
+    });
+
+    expect(await getTonightsPick("u1", "tv")).toEqual({ status: "all-rated" });
+  });
+
+  it("getDiscoverList only returns the requested media type", async () => {
+    const titles = [
+      title(1, [28], 9.0, "A Movie", "movie"),
+      title(2, [28], 8.0, "A Show", "tv"),
+    ];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      genreWeights: {},
+    });
+
+    const result = await getDiscoverList("u1", { mediaType: "movie" });
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.titles.map((t) => t.id)).toEqual([1]);
   });
 });
 

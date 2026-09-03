@@ -75,7 +75,8 @@ const SKIP_COOLDOWN_HOURS = 24;
 
 async function getCandidatePool(
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  mediaType?: MediaType
 ): Promise<CandidatePool | { status: CandidateStatus }> {
   const [{ data: userPlatforms }, { data: tasteProfile }, { data: feedbackRows }, { count: titleCount }, { data: watchlistRows }] =
     await Promise.all([
@@ -148,10 +149,12 @@ async function getCandidatePool(
   const candidateIds = [...platformsByTitleId.keys()].filter((id) => !excludedIds.has(id)).slice(0, MAX_CANDIDATES);
   if (candidateIds.length === 0) return { status: "all-rated" };
 
-  const { data: candidateRows } = await supabase
+  let titlesQuery = supabase
     .from("titles")
     .select("id, tmdb_id, media_type, title, overview, poster_path, genre_ids, vote_average, justwatch_link")
     .in("id", candidateIds);
+  if (mediaType) titlesQuery = titlesQuery.eq("media_type", mediaType);
+  const { data: candidateRows } = await titlesQuery;
   if (!candidateRows || candidateRows.length === 0) return { status: "all-rated" };
 
   // Genre -> names of liked titles sharing that genre, for the "why" copy.
@@ -296,9 +299,9 @@ function sharedGenreCount(a: number[], b: number[]): number {
   return a.filter((id) => bSet.has(id)).length;
 }
 
-export async function getTonightsPick(userId: string): Promise<TonightsPickResult> {
+export async function getTonightsPick(userId: string, mediaType?: MediaType): Promise<TonightsPickResult> {
   const supabase = await createClient();
-  const pool = await getCandidatePool(userId, supabase);
+  const pool = await getCandidatePool(userId, supabase, mediaType);
   if ("status" in pool) return pool;
 
   const scores = pool.scored.map((c) => c.score);
@@ -363,6 +366,7 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
 export interface DiscoverListOptions {
   platform?: string;
   genreId?: number;
+  mediaType?: MediaType;
   limit?: number;
 }
 
@@ -380,7 +384,7 @@ const DEFAULT_DISCOVER_LIMIT = 30;
 
 export async function getDiscoverList(userId: string, options: DiscoverListOptions = {}): Promise<DiscoverListResult> {
   const supabase = await createClient();
-  const pool = await getCandidatePool(userId, supabase);
+  const pool = await getCandidatePool(userId, supabase, options.mediaType);
   if ("status" in pool) return pool;
 
   const scores = pool.scored.map((c) => c.score);

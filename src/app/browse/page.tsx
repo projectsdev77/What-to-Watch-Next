@@ -3,13 +3,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getDiscoverList, type CandidateStatus } from "@/lib/recommendations";
+import { parseMediaType, type MediaType } from "@/lib/tmdb";
 import { TitleCard } from "@/components/watch/title-card";
 import { AppHeader } from "@/components/chrome/app-header";
+import { MediaTypeTabs } from "@/components/chrome/media-type-tabs";
 
 export default async function BrowsePage({
   searchParams,
 }: {
-  searchParams: Promise<{ platform?: string; genre?: string }>;
+  searchParams: Promise<{ platform?: string; genre?: string; type?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -21,28 +23,33 @@ export default async function BrowsePage({
   if (!hasPlatforms) redirect("/onboarding/platforms");
   if (!hasTasteProfile) redirect("/onboarding/quiz");
 
-  const { platform, genre } = await searchParams;
+  const { platform, genre, type } = await searchParams;
   const genreId = genre ? Number(genre) : undefined;
+  const mediaType = parseMediaType(type);
 
-  const result = await getDiscoverList(user.id, { platform, genreId, limit: 60 });
+  const result = await getDiscoverList(user.id, { platform, genreId, mediaType, limit: 60 });
 
   if (result.status !== "ok") {
-    return <EmptyState status={result.status} />;
+    return <EmptyState status={result.status} mediaType={mediaType} />;
   }
 
   const query = new URLSearchParams();
   if (platform) query.set("platform", platform);
   if (genre) query.set("genre", genre);
+  if (mediaType === "tv") query.set("type", "tv");
   const redirectTo = query.size > 0 ? `/browse?${query}` : "/browse";
   const hasFilters = Boolean(platform || genre);
+  const clearHref = mediaType === "tv" ? "/browse?type=tv" : "/browse";
 
   return (
     <div className="flex flex-1 flex-col bg-sky">
       <AppHeader active="/browse" />
+      <MediaTypeTabs active={mediaType} basePath="/browse" preserveParams={{ platform, genre }} />
 
       <div className="flex flex-wrap items-center gap-3 bg-steel-dark px-6 py-3.5 sm:px-10">
         <span className="text-[11.5px] font-bold tracking-[.16em] text-white/80">FILTER</span>
         <form className="flex flex-wrap items-center gap-[10px]" action="/browse">
+          {mediaType === "tv" && <input type="hidden" name="type" value="tv" />}
           <select
             name="platform"
             defaultValue={platform ?? ""}
@@ -71,7 +78,7 @@ export default async function BrowsePage({
             APPLY
           </button>
           {hasFilters && (
-            <Link href="/browse" className="text-[13px] font-semibold text-white/85 underline">
+            <Link href={clearHref} className="text-[13px] font-semibold text-white/85 underline">
               Clear
             </Link>
           )}
@@ -87,7 +94,7 @@ export default async function BrowsePage({
               No titles match that combination right now. Widen the platform or the genre and try again.
             </p>
             <div className="flex gap-[10px] pt-1">
-              <Link href="/browse" className="bg-ink px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white">
+              <Link href={clearHref} className="bg-ink px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white">
                 CLEAR FILTERS
               </Link>
               <Link
@@ -110,7 +117,7 @@ export default async function BrowsePage({
   );
 }
 
-function EmptyState({ status }: { status: CandidateStatus }) {
+function EmptyState({ status, mediaType }: { status: CandidateStatus; mediaType: MediaType }) {
   const copy: Record<CandidateStatus, { heading: string; body: string; cta?: { href: string; label: string } }> = {
     "no-platforms": {
       heading: "PICK YOUR PLATFORMS FIRST",
@@ -137,6 +144,7 @@ function EmptyState({ status }: { status: CandidateStatus }) {
   return (
     <div className="flex flex-1 flex-col bg-sky">
       <AppHeader active="/browse" />
+      <MediaTypeTabs active={mediaType} basePath="/browse" />
       <main className="flex flex-1 flex-col items-center justify-center px-4 py-16">
         <div className="flex w-full max-w-[520px] flex-col items-start gap-4 bg-card p-9 shadow-card">
           <h1 className="font-heading text-[20px] font-semibold tracking-[.18em]">{heading}</h1>

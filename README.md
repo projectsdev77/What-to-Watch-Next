@@ -44,6 +44,15 @@ confident "watch this tonight" pick instead of an endless scroll.
   above) is the recommended upgrade path if that experience matters
   enough to justify the cost.
 
+## Movies vs TV Shows
+
+Home and Browse both have real Movies / TV Shows tabs (`type=movie` /
+`type=tv` in the URL) — a structural split, not just another filter:
+each tab runs its own candidate pool, scoring, Tonight's Pick, and
+"Also Consider" (`getTonightsPick`/`getDiscoverList` in
+`src/lib/recommendations.ts` both take an optional `mediaType`). A movie
+you loved never bumps a TV pick out of contention, and vice versa.
+
 ## Real outside ratings
 
 Title detail pages show IMDb and Rotten Tomatoes scores alongside our own
