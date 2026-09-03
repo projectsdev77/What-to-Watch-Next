@@ -24,7 +24,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
       supabase
         .from("titles")
         .select(
-          "id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average, justwatch_link"
+          "id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average, justwatch_link, imdb_rating, rotten_tomatoes_rating"
         )
         .eq("id", titleId)
         .maybeSingle(),
@@ -101,6 +101,8 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
                     </span>
                   ))}
                   {title.vote_average != null && <span>★ {title.vote_average.toFixed(1)}</span>}
+                  {title.imdb_rating != null && <span>IMDb {Number(title.imdb_rating).toFixed(1)}</span>}
+                  {title.rotten_tomatoes_rating && <span>🍅 {title.rotten_tomatoes_rating}</span>}
                 </div>
                 {platforms.length > 0 && (
                   <span className="text-[13.5px] font-semibold text-text-2">{platforms.join(" · ")}</span>

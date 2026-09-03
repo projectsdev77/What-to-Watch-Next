@@ -78,6 +78,7 @@ export interface TmdbTitleDetails extends TmdbTitleSummary {
   genres: TmdbGenre[];
   keywords?: { id: number; name: string }[];
   credits?: TmdbCredits;
+  external_ids?: { imdb_id: string | null };
 }
 
 // Country -> list of provider offerings (flatrate = subscription streaming).
@@ -123,10 +124,12 @@ export function getGenres(mediaType: MediaType) {
 }
 
 export function getTitleDetails(mediaType: MediaType, id: number) {
-  // append_to_response bundles credits + keywords into one request instead of three.
+  // append_to_response bundles credits + keywords + external_ids (which
+  // carries the imdb_id used for OMDb ratings lookups) into one request
+  // instead of several.
   const keywordsField = mediaType === "movie" ? "keywords" : "keywords";
   return tmdbFetch<TmdbTitleDetails>(`/${mediaType}/${id}`, {
-    append_to_response: `credits,${keywordsField}`,
+    append_to_response: `credits,${keywordsField},external_ids`,
   });
 }
 

@@ -8,6 +8,7 @@ import {
   type TmdbTitleSummary,
 } from "@/lib/tmdb";
 import { normalizeProviderName, DEFAULT_REGION } from "@/lib/platforms";
+import { getOmdbRatings } from "@/lib/omdb";
 
 /**
  * Fetches one title from TMDB and upserts it (plus its streaming
@@ -41,6 +42,9 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
       .slice(0, 5)
       .map((c) => c.name);
 
+    const imdbId = details.external_ids?.imdb_id ?? null;
+    const ratings = imdbId ? await getOmdbRatings(imdbId) : null;
+
     const { data: title, error: titleError } = await admin
       .from("titles")
       .upsert(
@@ -56,6 +60,16 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
           vote_average: details.vote_average,
           release_date: details.release_date ?? details.first_air_date ?? null,
           cached_at: new Date().toISOString(),
+          imdb_id: imdbId,
+          // Only overwrite the cached rating columns when OMDb actually
+          // returned something this time — a transient OMDb failure (or
+          // OMDB_API_KEY being unset) shouldn't null out a rating a past
+          // ingest already cached.
+          ...(ratings && {
+            imdb_rating: ratings.imdbRating,
+            rotten_tomatoes_rating: ratings.rottenTomatoes,
+            ratings_cached_at: new Date().toISOString(),
+          }),
         },
         { onConflict: "tmdb_id,media_type" }
       )

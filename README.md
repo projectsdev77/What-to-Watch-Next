@@ -44,6 +44,18 @@ confident "watch this tonight" pick instead of an endless scroll.
   above) is the recommended upgrade path if that experience matters
   enough to justify the cost.
 
+## Real outside ratings
+
+Title detail pages show IMDb and Rotten Tomatoes scores alongside our own
+TMDB-sourced number, via [OMDb](https://www.omdbapi.com/) (keyed off the
+`imdb_id` TMDB's `external_ids` returns). Optional — set `OMDB_API_KEY`
+(free tier) and apply `supabase/migrations/0006_add_ratings.sql`; without
+a key, titles just render without those two numbers. Ratings are fetched
+and cached once per title at ingest time (`ingestTitle` in
+`src/lib/catalog.ts`), not live per page view, to stay well inside OMDb's
+free daily quota — they refresh naturally as `/api/cron/refresh-catalog`
+re-ingests titles over time.
+
 ## Keeping the catalog fresh
 
 `npm run seed` is a one-time bootstrap (TMDB's "popular" lists, ~120
