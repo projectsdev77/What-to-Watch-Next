@@ -57,6 +57,45 @@ export async function addToDefaultWatchlistAction(formData: FormData) {
   redirect(redirectTo);
 }
 
+/** The picker's add — saves to a specific list the user chose (shown
+ * when they have more than one — see WatchlistButton). */
+export async function addToListAction(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const titleId = Number(formData.get("titleId"));
+  const watchlistId = Number(formData.get("watchlistId"));
+  const redirectTo = safeRedirectTarget(formData);
+  if (!titleId || !watchlistId) redirect(redirectTo);
+
+  // Confirm this list is actually the current user's before writing to
+  // it — watchlist_items' RLS check only constrains the row's own
+  // user_id column (set correctly below), not that watchlist_id itself
+  // belongs to that same user, so skipping this would let someone add a
+  // title into an arbitrary list by id.
+  const { data: ownedList } = await supabase
+    .from("watchlists")
+    .select("id")
+    .eq("id", watchlistId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!ownedList) redirect(redirectTo);
+
+  const { error } = await supabase
+    .from("watchlist_items")
+    .upsert(
+      { watchlist_id: watchlistId, user_id: user.id, title_id: titleId },
+      { onConflict: "watchlist_id,title_id" }
+    );
+  if (error) throw new Error(`Failed to add to watchlist: ${error.message}`);
+
+  revalidatePath(redirectTo);
+  redirect(redirectTo);
+}
+
 /** The quick button's remove — clears the title from every one of the
  * user's lists, not just the default one, so "ON WATCHLIST — REMOVE"
  * actually clears the state it's showing regardless of which list(s)

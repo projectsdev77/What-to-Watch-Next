@@ -19,29 +19,36 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   const titleId = Number(id);
   if (!titleId) notFound();
 
-  const [{ data: title }, { data: availabilityRows }, { data: feedback }, { data: userPlatformRows }, { data: watchlistRows }] =
-    await Promise.all([
-      supabase
-        .from("titles")
-        .select(
-          "id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average, justwatch_link, imdb_rating, rotten_tomatoes_rating"
-        )
-        .eq("id", titleId)
-        .maybeSingle(),
-      supabase
-        .from("title_availability")
-        .select("platform_name")
-        .eq("title_id", titleId)
-        .eq("region", DEFAULT_REGION),
-      supabase
-        .from("user_title_feedback")
-        .select("status")
-        .eq("user_id", user.id)
-        .eq("title_id", titleId)
-        .maybeSingle(),
-      supabase.from("user_platforms").select("platform_name").eq("user_id", user.id),
-      supabase.from("watchlist_items").select("title_id").eq("user_id", user.id).eq("title_id", titleId).limit(1),
-    ]);
+  const [
+    { data: title },
+    { data: availabilityRows },
+    { data: feedback },
+    { data: userPlatformRows },
+    { data: watchlistRows },
+    { data: lists },
+  ] = await Promise.all([
+    supabase
+      .from("titles")
+      .select(
+        "id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average, justwatch_link, imdb_rating, rotten_tomatoes_rating"
+      )
+      .eq("id", titleId)
+      .maybeSingle(),
+    supabase
+      .from("title_availability")
+      .select("platform_name")
+      .eq("title_id", titleId)
+      .eq("region", DEFAULT_REGION),
+    supabase
+      .from("user_title_feedback")
+      .select("status")
+      .eq("user_id", user.id)
+      .eq("title_id", titleId)
+      .maybeSingle(),
+    supabase.from("user_platforms").select("platform_name").eq("user_id", user.id),
+    supabase.from("watchlist_items").select("title_id").eq("user_id", user.id).eq("title_id", titleId).limit(1),
+    supabase.from("watchlists").select("id, name").eq("user_id", user.id).order("created_at"),
+  ]);
 
   if (!title) notFound();
 
@@ -133,7 +140,12 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
                   matchingPlatforms={matchingPlatforms}
                   fallbackUrl={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
                 />
-                <WatchlistButton titleId={title.id} redirectTo={redirectTo} isWatchlisted={isWatchlisted} />
+                <WatchlistButton
+                  titleId={title.id}
+                  redirectTo={redirectTo}
+                  isWatchlisted={isWatchlisted}
+                  lists={lists ?? []}
+                />
               </div>
               <FeedbackActions titleId={title.id} redirectTo={redirectTo} />
             </div>

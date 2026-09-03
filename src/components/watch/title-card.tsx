@@ -10,6 +10,7 @@ export function TitleCard({
   redirectTo,
   featured = false,
   unrestricted = false,
+  lists = [],
 }: {
   title: RecommendedTitle;
   redirectTo: string;
@@ -19,9 +20,13 @@ export function TitleCard({
   // than what the user actually subscribes to, so Watch Now shouldn't
   // offer a per-platform picker built from it.
   unrestricted?: boolean;
+  // The user's named watchlists, for the featured card's Watchlist
+  // button — see WatchlistButton. Only the featured card shows one; the
+  // small grid cards don't have action buttons at all.
+  lists?: { id: number; name: string }[];
 }) {
   if (featured) {
-    return <FeaturedCard title={title} redirectTo={redirectTo} unrestricted={unrestricted} />;
+    return <FeaturedCard title={title} redirectTo={redirectTo} unrestricted={unrestricted} lists={lists} />;
   }
 
   return (
@@ -56,10 +61,12 @@ function FeaturedCard({
   title,
   redirectTo,
   unrestricted,
+  lists,
 }: {
   title: RecommendedTitle;
   redirectTo: string;
   unrestricted: boolean;
+  lists: { id: number; name: string }[];
 }) {
   // No 16:9 backdrop asset exists for arbitrary titles — the poster
   // itself, blurred and scaled behind the glass panel, stands in as
@@ -125,7 +132,12 @@ function FeaturedCard({
               matchingPlatforms={unrestricted ? [] : title.platforms}
               fallbackUrl={title.watchUrl}
             />
-            <WatchlistButton titleId={title.id} redirectTo={redirectTo} isWatchlisted={title.isWatchlisted} />
+            <WatchlistButton
+              titleId={title.id}
+              redirectTo={redirectTo}
+              isWatchlisted={title.isWatchlisted}
+              lists={lists}
+            />
           </div>
           <div className="pt-1">
             <FeedbackActions titleId={title.id} redirectTo={redirectTo} />

@@ -22,7 +22,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const mediaType = parseMediaType((await searchParams).type);
   const redirectTo = mediaType === "movie" ? "/" : "/?type=tv";
 
-  const result = await getTonightsPick(user.id, mediaType);
+  const [result, { data: lists }] = await Promise.all([
+    getTonightsPick(user.id, mediaType),
+    supabase.from("watchlists").select("id, name").eq("user_id", user.id).order("created_at"),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col bg-sky">
@@ -32,7 +35,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
         <EmptyState status={result.status} />
       ) : (
         <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col gap-[34px] px-4 py-8 sm:px-10 sm:py-10">
-          <TitleCard title={result.pick} redirectTo={redirectTo} featured unrestricted={result.unrestricted} />
+          <TitleCard
+            title={result.pick}
+            redirectTo={redirectTo}
+            featured
+            unrestricted={result.unrestricted}
+            lists={lists ?? []}
+          />
 
           {result.discover.length > 0 && (
             <section className="flex flex-col gap-4">
