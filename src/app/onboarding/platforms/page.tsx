@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { STREAMING_PLATFORMS } from "@/lib/platforms";
-import { PlatformCheckbox } from "@/components/settings/platform-checkbox";
+import { PlatformPickerForm } from "@/components/settings/platform-picker-form";
 import { savePlatformsAction } from "./actions";
 
 export default async function PlatformsOnboardingPage() {
@@ -24,21 +23,15 @@ export default async function PlatformsOnboardingPage() {
           WHICH SERVICES DO YOU HAVE?
         </h1>
         <p className="mb-6 text-[14px] text-text-2">
-          We&apos;ll only ever recommend something you can actually watch.
+          We&apos;ll only ever recommend something you can actually watch. Don&apos;t see yours, or don&apos;t have
+          one? Pick &quot;Other&quot; and we&apos;ll show you everything instead.
         </p>
-        <form action={savePlatformsAction} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            {STREAMING_PLATFORMS.map((name) => (
-              <PlatformCheckbox key={name} name={name} checked={selected.has(name)} />
-            ))}
-          </div>
-          <button
-            type="submit"
-            className="mt-2 self-start bg-ink px-[34px] py-[14px] text-[12.5px] font-bold tracking-[.12em] text-white"
-          >
-            CONTINUE
-          </button>
-        </form>
+        <PlatformPickerForm
+          action={savePlatformsAction}
+          selected={selected}
+          submitLabel="CONTINUE"
+          pendingLabel="SAVING…"
+        />
       </div>
     </main>
   );

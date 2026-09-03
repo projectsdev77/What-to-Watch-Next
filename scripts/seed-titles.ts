@@ -12,7 +12,7 @@ import { createAdminClient } from "../src/lib/supabase/admin";
 import {
   getPopular,
   getTitleDetails,
-  getStreamingPlatforms,
+  getWatchProviders,
   type MediaType,
   type TmdbTitleSummary,
 } from "../src/lib/tmdb";
@@ -51,13 +51,18 @@ async function seedTitle(
 ): Promise<boolean> {
   try {
     const details = await getTitleDetails(mediaType, summary.id);
-    const rawPlatforms = await getStreamingPlatforms(mediaType, summary.id, DEFAULT_REGION);
+    const watchProviders = await getWatchProviders(mediaType, summary.id);
+    const regionProviders = watchProviders.results[DEFAULT_REGION];
+    const rawPlatforms = regionProviders?.flatrate?.map((p) => p.provider_name) ?? [];
     // Normalize TMDB's free-text provider names into our canonical
     // platform list (see src/lib/platforms.ts) and drop anything that
     // isn't one of the services users can pick at onboarding.
     const platforms = [
       ...new Set(rawPlatforms.map(normalizeProviderName).filter((p): p is NonNullable<typeof p> => p !== null)),
     ];
+    // The real combined "where to watch" link for this title (JustWatch,
+    // via TMDB) — null when TMDB has no provider data for this region.
+    const justwatchLink = regionProviders?.link ?? null;
 
     const castNames = [...(details.credits?.cast ?? [])]
       .sort((a, b) => a.order - b.order)
@@ -75,6 +80,7 @@ async function seedTitle(
           poster_path: details.poster_path,
           genre_ids: details.genres.map((g) => g.id),
           cast_names: castNames,
+          justwatch_link: justwatchLink,
           vote_average: details.vote_average,
           release_date: details.release_date ?? details.first_air_date ?? null,
           cached_at: new Date().toISOString(),

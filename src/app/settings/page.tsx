@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { STREAMING_PLATFORMS } from "@/lib/platforms";
-import { PlatformCheckbox } from "@/components/settings/platform-checkbox";
+import { PlatformPickerForm } from "@/components/settings/platform-picker-form";
 import { AppHeader } from "@/components/chrome/app-header";
 import { updatePlatformsAction, resetTasteProfileAction } from "./actions";
 
@@ -28,22 +28,20 @@ export default async function SettingsPage() {
             <p className="text-[13.5px] text-text-2">Signed in as {user.email}</p>
           </div>
           <div className="h-px bg-[rgba(12,35,52,.14)]" />
-          <form action={updatePlatformsAction} className="flex flex-col gap-[14px]">
+          <div className="flex flex-col gap-[14px]">
             <span className="text-[12.5px] font-bold tracking-[.16em] text-text-3">STREAMING PLATFORMS</span>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {STREAMING_PLATFORMS.map((name) => (
-                <PlatformCheckbox key={name} name={name} checked={selected.has(name)} />
-              ))}
-            </div>
-            <div className="flex items-center gap-4 pt-1">
-              <button type="submit" className="bg-ink px-[34px] py-[14px] text-[12.5px] font-bold tracking-[.12em] text-white">
-                SAVE
-              </button>
-              <span className="text-[13px] text-text-3">
-                {selected.size} of {STREAMING_PLATFORMS.length} selected
-              </span>
-            </div>
-          </form>
+            <PlatformPickerForm
+              action={updatePlatformsAction}
+              selected={selected}
+              submitLabel="SAVE"
+              pendingLabel="SAVING…"
+              footer={
+                <span className="text-[13px] text-text-3">
+                  {selected.size} of {STREAMING_PLATFORMS.length} selected
+                </span>
+              }
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-[13px] border-t-4 border-danger bg-card p-7 shadow-card">

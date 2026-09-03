@@ -21,7 +21,9 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   const [{ data: title }, { data: availabilityRows }, { data: feedback }] = await Promise.all([
     supabase
       .from("titles")
-      .select("id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average")
+      .select(
+        "id, tmdb_id, media_type, title, overview, poster_path, genre_ids, cast_names, vote_average, justwatch_link"
+      )
       .eq("id", titleId)
       .maybeSingle(),
     supabase
@@ -110,7 +112,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
 
               <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
                 <a
-                  href={tmdbTitleUrl(title.media_type, title.tmdb_id)}
+                  href={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-full bg-ink px-8 py-[14px] text-[13.5px] font-bold tracking-[.1em] text-white shadow-[0_12px_28px_rgba(12,35,52,.35)]"

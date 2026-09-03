@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { passwordError } from "@/lib/password";
 
 export interface AuthState {
   variant: "error" | "info";
@@ -29,9 +30,8 @@ export async function signUpAction(
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  if (password.length < 8) {
-    return { variant: "error", message: "Password must be at least 8 characters." };
-  }
+  const passwordIssue = passwordError(password);
+  if (passwordIssue) return { variant: "error", message: passwordIssue };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password });

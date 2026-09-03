@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { genreName } from "@/lib/genres";
-import { DEFAULT_REGION } from "@/lib/platforms";
+import { DEFAULT_REGION, NO_PREFERENCE_PLATFORM } from "@/lib/platforms";
 import { tmdbTitleUrl, type MediaType } from "@/lib/tmdb";
 
 export interface RecommendedTitle {
@@ -30,6 +30,7 @@ interface CandidateRow {
   poster_path: string | null;
   genre_ids: number[];
   vote_average: number | null;
+  justwatch_link: string | null;
 }
 
 interface ScoredCandidate {
@@ -79,6 +80,13 @@ async function getCandidatePool(
   if (platformNames.length === 0) return { status: "no-platforms" };
   if (!titleCount) return { status: "empty-catalog" };
 
+  // "Other" isn't a real service — if that's all someone picked (no
+  // budget for streaming, or their service just isn't listed), don't
+  // filter by platform at all: show the whole catalog instead of
+  // blocking them out entirely.
+  const realPlatformNames = platformNames.filter((p) => p !== NO_PREFERENCE_PLATFORM);
+  const unrestricted = realPlatformNames.length === 0;
+
   const genreWeights: Record<string, number> = (tasteProfile?.genre_weights as Record<string, number>) ?? {};
   const hasSignal = Object.values(genreWeights).some((w) => w !== 0);
 
@@ -103,18 +111,23 @@ async function getCandidatePool(
     }
   }
 
-  const { data: availabilityRows } = await supabase
+  const availabilityQuery = supabase
     .from("title_availability")
     .select("title_id, platform_name")
-    .eq("region", DEFAULT_REGION)
-    .in("platform_name", platformNames);
+    .eq("region", DEFAULT_REGION);
+  const { data: availabilityRows } = unrestricted
+    ? await availabilityQuery
+    : await availabilityQuery.in("platform_name", realPlatformNames);
 
   const platformsByTitleId = new Map<number, Set<string>>();
+  const seenPlatforms = new Set<string>();
   for (const row of availabilityRows ?? []) {
     const titleId = row.title_id as number;
+    const platformName = row.platform_name as string;
     const set = platformsByTitleId.get(titleId) ?? new Set<string>();
-    set.add(row.platform_name as string);
+    set.add(platformName);
     platformsByTitleId.set(titleId, set);
+    seenPlatforms.add(platformName);
   }
   if (platformsByTitleId.size === 0) return { status: "nothing-available" };
 
@@ -123,7 +136,7 @@ async function getCandidatePool(
 
   const { data: candidateRows } = await supabase
     .from("titles")
-    .select("id, tmdb_id, media_type, title, overview, poster_path, genre_ids, vote_average")
+    .select("id, tmdb_id, media_type, title, overview, poster_path, genre_ids, vote_average, justwatch_link")
     .in("id", candidateIds);
   if (!candidateRows || candidateRows.length === 0) return { status: "all-rated" };
 
@@ -165,7 +178,7 @@ async function getCandidatePool(
     platformsByTitleId,
     likedTitlesByGenre,
     hasSignal,
-    allPlatforms: [...new Set(platformNames)].sort(),
+    allPlatforms: [...seenPlatforms].sort(),
     allGenres: [...allGenreIds].map((id) => ({ id, name: genreName(id) })).sort((a, b) => a.name.localeCompare(b.name)),
   };
 }
@@ -202,7 +215,10 @@ function toRecommended(candidate: ScoredCandidate, pool: CandidatePool, min: num
     platforms: [...(pool.platformsByTitleId.get(row.id) ?? [])],
     matchPercent,
     why,
-    watchUrl: tmdbTitleUrl(row.media_type, row.tmdb_id),
+    // TMDB's real combined "where to watch" link (JustWatch) when we
+    // have one cached; falls back to the generic TMDB title page for
+    // titles seeded before this existed, or with no provider data.
+    watchUrl: row.justwatch_link ?? tmdbTitleUrl(row.media_type, row.tmdb_id),
     isWatchlisted,
   };
 }

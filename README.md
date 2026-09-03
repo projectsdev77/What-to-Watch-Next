@@ -23,9 +23,22 @@ confident "watch this tonight" pick instead of an endless scroll.
 
   **Recommendation:** if/when there's budget, switch availability data to
   [Watchmode](https://api.watchmode.com/) — a licensed, commercial-grade
-  API built for exactly this. The `getWatchProviders` /
-  `getStreamingPlatforms` functions in `src/lib/tmdb.ts` are the only
-  places that would need to change.
+  API built for exactly this. `getWatchProviders` in `src/lib/tmdb.ts`
+  is the only place that would need to change.
+
+- **"Watch Now" link.** TMDB's free API doesn't give a true per-platform
+  deep link (there's no "open this exact title on Hulu" URL available
+  without a paid feed) — it only returns one combined link per title
+  showing every real provider on one JustWatch-hosted page. That's what
+  "Watch Now" opens today (`titles.justwatch_link`, captured during
+  seeding, falling back to the title's TMDB page if TMDB has no provider
+  data for it).
+
+  **This is a real limitation worth flagging to the client:** true
+  one-click "open this exact title on the platform I picked" deep
+  linking, per platform, needs a paid data source — Watchmode (linked
+  above) is the recommended upgrade path if that experience matters
+  enough to justify the cost.
 
 ## Feasibility notes (read before extending scope)
 

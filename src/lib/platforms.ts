@@ -3,6 +3,12 @@
 // a second region gets added, there's exactly one place to change.
 export const DEFAULT_REGION = "US";
 
+// Not a real service — lets someone without any of the listed platforms
+// (or who isn't sure yet) still pick *something* and continue. Selecting
+// only this means "don't filter by platform", not "filter to nothing" —
+// see the unrestricted-mode handling in src/lib/recommendations.ts.
+export const NO_PREFERENCE_PLATFORM = "Other" as const;
+
 // Display list for onboarding platform selection.
 export const STREAMING_PLATFORMS = [
   "Netflix",
@@ -13,6 +19,7 @@ export const STREAMING_PLATFORMS = [
   "Max",
   "Peacock",
   "Paramount+",
+  NO_PREFERENCE_PLATFORM,
 ] as const;
 
 export type StreamingPlatform = (typeof STREAMING_PLATFORMS)[number];

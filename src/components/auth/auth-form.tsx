@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { signInAction, signUpAction, type AuthState } from "@/app/login/actions";
+import { PASSWORD_REQUIREMENTS_HINT } from "@/lib/password";
 
 function FloatingLabelInput({
   id,
@@ -58,6 +59,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         minLength={mode === "signup" ? 8 : undefined}
         autoComplete={mode === "login" ? "current-password" : "new-password"}
       />
+      {mode === "signup" && (
+        <p className="-mt-2 text-[12.5px] text-text-3">{PASSWORD_REQUIREMENTS_HINT}</p>
+      )}
       {state && (
         <p
           className={
