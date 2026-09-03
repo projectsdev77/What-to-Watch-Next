@@ -54,6 +54,12 @@ interface CandidatePool {
 const WATCHLIST_BONUS = 3;
 const MAX_CANDIDATES = 300; // defensive cap for the .in() query at MVP scale
 
+// "Not today" (status: skipped) means exactly that — not forever. Liked,
+// disliked, and watched are genuine judgments and stay excluded
+// permanently; a skip only holds the title back for a day before it's
+// eligible to be recommended again.
+const SKIP_COOLDOWN_HOURS = 24;
+
 async function getCandidatePool(
   userId: string,
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -64,7 +70,7 @@ async function getCandidatePool(
       supabase.from("user_taste_profile").select("genre_weights").eq("user_id", userId).maybeSingle(),
       supabase
         .from("user_title_feedback")
-        .select("title_id, status, titles(id, title, genre_ids)")
+        .select("title_id, status, updated_at, titles(id, title, genre_ids)")
         .eq("user_id", userId),
       supabase.from("titles").select("*", { count: "exact", head: true }),
     ]);
@@ -76,16 +82,25 @@ async function getCandidatePool(
   const genreWeights: Record<string, number> = (tasteProfile?.genre_weights as Record<string, number>) ?? {};
   const hasSignal = Object.values(genreWeights).some((w) => w !== 0);
 
-  // Anything already judged (liked/disliked/watched/skipped) is excluded
-  // from future picks. Watchlisted titles are the one exception: the
-  // user has said they *want* to watch it, so it stays a candidate and
-  // gets a scoring bonus instead — see toRecommended below.
+  // Anything already judged (liked/disliked/watched) is excluded from
+  // future picks permanently. Watchlisted titles are the one exception:
+  // the user has said they *want* to watch it, so it stays a candidate
+  // and gets a scoring bonus instead — see toRecommended below. A skip
+  // ("Not today") only excludes for SKIP_COOLDOWN_HOURS — it should come
+  // back tomorrow, not vanish forever.
+  const skipCutoff = Date.now() - SKIP_COOLDOWN_HOURS * 60 * 60 * 1000;
   const excludedIds = new Set<number>();
   const watchlistedIds = new Set<number>();
   for (const row of feedbackRows ?? []) {
     const titleId = row.title_id as number;
-    if (row.status === "watchlisted") watchlistedIds.add(titleId);
-    else excludedIds.add(titleId);
+    if (row.status === "watchlisted") {
+      watchlistedIds.add(titleId);
+    } else if (row.status === "skipped") {
+      const skippedAt = new Date(row.updated_at as string).getTime();
+      if (skippedAt > skipCutoff) excludedIds.add(titleId);
+    } else {
+      excludedIds.add(titleId);
+    }
   }
 
   const { data: availabilityRows } = await supabase
@@ -198,6 +213,11 @@ export type TonightsPickResult =
 
 const DISCOVER_SIZE = 6;
 
+function sharedGenreCount(a: number[], b: number[]): number {
+  const bSet = new Set(b);
+  return a.filter((id) => bSet.has(id)).length;
+}
+
 export async function getTonightsPick(userId: string): Promise<TonightsPickResult> {
   const supabase = await createClient();
   const pool = await getCandidatePool(userId, supabase);
@@ -208,10 +228,21 @@ export async function getTonightsPick(userId: string): Promise<TonightsPickResul
   const max = Math.max(...scores);
 
   const [pick, ...rest] = pool.scored;
+
+  // "Also consider" should read as "because you're about to watch this",
+  // not just "your next-best overall matches" — rank by how much each
+  // candidate's genres overlap with the actual pick, falling back to
+  // overall taste score as a tiebreaker.
+  const related = [...rest].sort((a, b) => {
+    const overlapA = sharedGenreCount(a.row.genre_ids, pick.row.genre_ids);
+    const overlapB = sharedGenreCount(b.row.genre_ids, pick.row.genre_ids);
+    return overlapB - overlapA || b.score - a.score;
+  });
+
   return {
     status: "ok",
     pick: toRecommended(pick, pool, min, max),
-    discover: rest.slice(0, DISCOVER_SIZE).map((c) => toRecommended(c, pool, min, max)),
+    discover: related.slice(0, DISCOVER_SIZE).map((c) => toRecommended(c, pool, min, max)),
   };
 }
 

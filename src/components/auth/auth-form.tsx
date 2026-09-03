@@ -51,7 +51,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         name="password"
         type="password"
         required
-        minLength={8}
+        // Only enforce a minimum length when creating a password (signup).
+        // On login we should just attempt auth with whatever was typed —
+        // gating on length there produced a confusing "too short" message
+        // even when the credentials might otherwise be valid.
+        minLength={mode === "signup" ? 8 : undefined}
         autoComplete={mode === "login" ? "current-password" : "new-password"}
       />
       {state && (
