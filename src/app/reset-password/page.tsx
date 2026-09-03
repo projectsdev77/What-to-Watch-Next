@@ -1,36 +1,13 @@
 import { AuthHero } from "@/components/auth/auth-hero";
-import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-import { createClient } from "@/lib/supabase/server";
+import { ResetPasswordGate } from "@/components/auth/reset-password-gate";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; error?: string; type?: string }>;
+  searchParams: Promise<{ success?: string; error?: string }>;
 }) {
-  const supabase = await createClient();
-  const { success, error, type } = await searchParams;
-
-  // If not showing success or error states, validate access
-  if (!success && !error) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    // No session = accessed page directly without any authentication
-    if (!session) {
-      redirect("/reset-password?error=invalid");
-    }
-
-    // If we have a session, check if it's a recovery session
-    // Supabase password recovery emails redirect with type=recovery in the URL
-    // If there's no type=recovery, this is someone logged in normally trying to access directly
-    if (session && type !== "recovery") {
-      // They're logged in normally - send them to settings to request password reset properly
-      redirect("/settings");
-    }
-  }
+  const { success, error } = await searchParams;
 
   return (
     <AuthHero
@@ -83,17 +60,15 @@ export default async function ResetPasswordPage({
             </div>
           </div>
         ) : (
-          <>
-            <div className="mb-5 flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                <h1 className="font-heading text-[20px] font-semibold tracking-[.18em]">SET NEW PASSWORD</h1>
-                <p className="text-[14px] leading-[1.65] text-text-2">
-                  Enter a new password for your account. Make sure it&apos;s strong and secure.
-                </p>
-              </div>
-              <ResetPasswordForm />
+          <div className="mb-5 flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <h1 className="font-heading text-[20px] font-semibold tracking-[.18em]">SET NEW PASSWORD</h1>
+              <p className="text-[14px] leading-[1.65] text-text-2">
+                Enter a new password for your account. Make sure it&apos;s strong and secure.
+              </p>
             </div>
-          </>
+            <ResetPasswordGate />
+          </div>
         )}
       </div>
     </AuthHero>

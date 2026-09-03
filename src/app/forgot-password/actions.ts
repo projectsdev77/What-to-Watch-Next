@@ -4,9 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export interface PasswordResetState {
-  variant: "error" | "info";
+  variant: "error";
   message: string;
 }
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function requestPasswordResetAction(
   _prevState: PasswordResetState | undefined,
@@ -17,39 +19,21 @@ export async function requestPasswordResetAction(
   if (!email) {
     return { variant: "error", message: "Email address is required." };
   }
-
-  // Basic email format validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!EMAIL_REGEX.test(email)) {
     return { variant: "error", message: "Please enter a valid email address." };
   }
 
   const supabase = await createClient();
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/reset-password`,
+  });
+  if (error) console.error("Password reset error:", error.message);
 
-  try {
-    // Get the origin for the redirect URL
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/reset-password`,
-    });
-
-    // Security: Do not reveal whether the email exists in the system.
-    // Always show the same success message regardless of the result.
-    // This prevents email enumeration attacks.
-    if (error) {
-      // Log the error server-side for debugging, but don't expose it to the user
-      console.error("Password reset error:", error.message);
-    }
-
-    // Always redirect to the success state, even if there was an error
-    redirect("/forgot-password?sent=true");
-  } catch (error) {
-    // Handle network or unexpected errors
-    console.error("Password reset request failed:", error);
-    return {
-      variant: "error",
-      message: "Unable to process your request. Please try again.",
-    };
-  }
+  // Security: never reveal whether the email exists — always land on the
+  // same success state regardless of outcome (email enumeration
+  // protection). redirect() throws internally, so it must run outside any
+  // try/catch here or our own catch would swallow the navigation and show
+  // an error instead — see node_modules/next/dist/docs/.../redirect.md.
+  redirect("/forgot-password?sent=true");
 }

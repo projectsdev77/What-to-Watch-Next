@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export interface UpdatePasswordState {
-  variant: "error" | "info";
+  variant: "error";
   message: string;
 }
 
@@ -16,58 +16,39 @@ export async function updatePasswordAction(
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  // Validate password requirements
   const passwordIssue = passwordError(password);
-  if (passwordIssue) {
-    return { variant: "error", message: passwordIssue };
-  }
-
-  // Ensure passwords match
+  if (passwordIssue) return { variant: "error", message: passwordIssue };
   if (password !== confirmPassword) {
     return { variant: "error", message: "Passwords do not match." };
   }
 
   const supabase = await createClient();
 
-  try {
-    // Verify we have a valid session from the recovery link
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+  // The recovery link's session is established client-side (see
+  // ResetPasswordGate, which consumes the tokens Supabase puts in the URL
+  // hash — a server render never sees those) and synced into cookies
+  // before this form can be submitted, so a valid session should already
+  // be here. No session means the link was never a real recovery link, or
+  // it genuinely expired.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  // redirect() throws internally, so every call here runs unconditionally
+  // (never inside a try/catch) — otherwise a catch block would swallow
+  // the navigation and show a generic error instead.
+  if (!session) redirect("/reset-password?error=invalid");
 
-    if (!session) {
-      redirect("/reset-password?error=invalid");
-    }
-
-    // Update the user's password
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
-
-    if (error) {
-      console.error("Password update error:", error.message);
-      
-      // Handle specific error cases
-      if (error.message.includes("session") || error.message.includes("token")) {
-        redirect("/reset-password?error=expired");
-      }
-      
-      return {
-        variant: "error",
-        message: "Unable to update password. Please request a new reset link.",
-      };
-    }
-
-    // Sign out the user after password change for security
-    await supabase.auth.signOut();
-
-    // Redirect to success page
-    redirect("/reset-password?success=true");
-  } catch (error) {
-    console.error("Password update failed:", error);
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    console.error("Password update error:", error.message);
     return {
       variant: "error",
-      message: "An unexpected error occurred. Please try again.",
+      message: error.message || "Unable to update password. Please request a new reset link.",
     };
   }
+
+  // Force re-login with the new password — the recovery session shouldn't
+  // outlive the change.
+  await supabase.auth.signOut();
+  redirect("/reset-password?success=true");
 }

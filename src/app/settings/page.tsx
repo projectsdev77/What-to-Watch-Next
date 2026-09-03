@@ -1,10 +1,11 @@
 import { AppHeader } from "@/components/chrome/app-header";
+import { DeleteAccountForm } from "@/components/settings/delete-account-form";
 import { PasswordResetSection } from "@/components/settings/password-reset-section";
 import { PlatformPickerForm } from "@/components/settings/platform-picker-form";
 import { STREAMING_PLATFORMS } from "@/lib/platforms";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { deleteAccountAction, resetTasteProfileAction, updatePlatformsAction } from "./actions";
+import { resetTasteProfileAction, updatePlatformsAction } from "./actions";
 
 export default async function SettingsPage({
   searchParams,
@@ -75,14 +76,7 @@ export default async function SettingsPage({
             <p className="text-[14px] leading-[1.65] text-text-2">
               Permanently delete your account and all associated data. This action cannot be undone.
             </p>
-            <form action={deleteAccountAction}>
-              <button
-                type="submit"
-                className="self-start bg-danger px-6 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white"
-              >
-                DELETE MY ACCOUNT
-              </button>
-            </form>
+            <DeleteAccountForm />
           </div>
         </div>
       </main>

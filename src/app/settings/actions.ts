@@ -1,11 +1,13 @@
 "use server";
 
 import type { PlatformsFormState } from "@/components/settings/platform-picker-form";
+import { DELETE_CONFIRMATION_TEXT } from "@/lib/account";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export interface PasswordResetRequestState {
-  variant: "error" | "info";
+  variant: "error";
   message: string;
 }
 
@@ -46,7 +48,7 @@ export async function resetTasteProfileAction() {
   redirect("/onboarding/quiz");
 }
 
-/** Sends password reset email to the logged-in user's email address. */
+/** Sends a password reset email to the logged-in user's own address. */
 export async function requestPasswordResetForLoggedInUserAction(
   _prevState: PasswordResetRequestState | undefined,
   _formData: FormData
@@ -55,63 +57,59 @@ export async function requestPasswordResetForLoggedInUserAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  
-  if (!user || !user.email) {
-    redirect("/login");
+  if (!user || !user.email) redirect("/login");
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+    redirectTo: `${origin}/reset-password`,
+  });
+
+  if (error) {
+    console.error("Password reset error:", error.message);
+    return { variant: "error", message: "Unable to send reset link. Please try again." };
   }
 
-  try {
-    // Get the origin for the redirect URL
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${origin}/reset-password`,
-    });
-
-    if (error) {
-      console.error("Password reset error:", error.message);
-      return {
-        variant: "error",
-        message: "Unable to send reset link. Please try again.",
-      };
-    }
-
-    // Redirect to show success message
-    redirect("/settings?passwordResetSent=true");
-  } catch (error) {
-    console.error("Password reset request failed:", error);
-    return {
-      variant: "error",
-      message: "Unable to process your request. Please try again.",
-    };
-  }
+  // redirect() throws internally and must run outside try/catch — see
+  // node_modules/next/dist/docs/.../redirect.md — so the success path
+  // above must never be wrapped, or the navigation gets swallowed.
+  redirect("/settings?passwordResetSent=true");
 }
 
-/** Permanently deletes the user's account and all associated data. */
-export async function deleteAccountAction() {
+export interface DeleteAccountState {
+  error: string;
+}
+
+/**
+ * Permanently deletes the user's account. Every user-data table
+ * (platforms, feedback, taste profile) references auth.users with
+ * `on delete cascade` (see supabase/migrations/0001_init.sql) — so
+ * deleting the auth user via the admin API is the one call that actually
+ * removes everything, not the other way around. Requires typing a literal
+ * confirmation string, checked here server-side since a Server Function
+ * is reachable via direct POST, not just through the confirmation UI.
+ */
+export async function deleteAccountAction(
+  _prevState: DeleteAccountState | undefined,
+  formData: FormData
+): Promise<DeleteAccountState | undefined> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  try {
-    // Delete all user data from the database
-    // Due to cascade constraints in the schema, these deletions will clean up all user data
-    await supabase.from("user_title_feedback").delete().eq("user_id", user.id);
-    await supabase.from("user_taste_profile").delete().eq("user_id", user.id);
-    await supabase.from("user_platforms").delete().eq("user_id", user.id);
-
-    // Delete the user's auth account
-    // Note: This uses the admin API which requires service role key
-    // The regular client doesn't have permission, so we'll sign out instead
-    // In production, you'd want to implement this via an admin API endpoint
-    await supabase.auth.signOut();
-    redirect("/login");
-  } catch (error) {
-    console.error("Account deletion failed:", error);
-    // On error, sign out user anyway
-    await supabase.auth.signOut();
-    redirect("/login");
+  const confirmation = String(formData.get("confirm") ?? "");
+  if (confirmation !== DELETE_CONFIRMATION_TEXT) {
+    return { error: `Type "${DELETE_CONFIRMATION_TEXT}" to confirm.` };
   }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) {
+    console.error("Account deletion failed:", error.message);
+    return { error: "Something went wrong deleting your account. Please try again." };
+  }
+
+  await supabase.auth.signOut();
+  redirect("/login?accountDeleted=true");
 }
