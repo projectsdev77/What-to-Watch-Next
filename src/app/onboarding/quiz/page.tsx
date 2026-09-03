@@ -120,7 +120,7 @@ export default async function QuizOnboardingPage() {
                   </button>
                   <button
                     name="status"
-                    value="skipped"
+                    value="watched"
                     className="flex-1 border border-[rgba(12,35,52,.28)] py-[9px] text-[10px] font-bold tracking-[.02em]"
                   >
                     SEEN
