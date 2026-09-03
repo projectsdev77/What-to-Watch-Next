@@ -36,6 +36,17 @@ export async function AppHeader({ active }: { active?: (typeof NAV_LINKS)[number
       </nav>
 
       {user && (
+        <form action="/search" method="GET" className="flex items-center">
+          <input
+            type="text"
+            name="q"
+            placeholder="Search titles"
+            className="w-[150px] border border-white/25 bg-white/12 px-3 py-[7px] text-[13px] text-white placeholder:text-white/60 focus:w-[190px] focus:border-white/60 focus:outline-none sm:w-[180px]"
+          />
+        </form>
+      )}
+
+      {user && (
         <form action={signOutAction} className="ml-auto flex items-center gap-4">
           <span className="hidden text-[13px] text-white/82 sm:inline">{user.email}</span>
           <button

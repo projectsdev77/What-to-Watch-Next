@@ -8,15 +8,8 @@
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
-import { createAdminClient } from "../src/lib/supabase/admin";
-import {
-  getPopular,
-  getTitleDetails,
-  getWatchProviders,
-  type MediaType,
-  type TmdbTitleSummary,
-} from "../src/lib/tmdb";
-import { normalizeProviderName, DEFAULT_REGION } from "../src/lib/platforms";
+import { getPopular, type MediaType, type TmdbTitleSummary } from "../src/lib/tmdb";
+import { ingestTitle } from "../src/lib/catalog";
 
 const MEDIA_TYPES: MediaType[] = ["movie", "tv"];
 const PAGES_PER_MEDIA_TYPE = 3; // ~60 titles per media type, plenty of genre spread
@@ -38,92 +31,7 @@ async function collectPopular(mediaType: MediaType): Promise<TmdbTitleSummary[]>
   return pages.flatMap((page) => page.results);
 }
 
-/**
- * Seeds one title. Returns false (and logs) on any failure instead of
- * throwing — TMDB is a live external API mid-run, and one flaky title
- * (transient network error, an odd response shape) shouldn't abort the
- * other ~100+ titles already in flight or already written.
- */
-async function seedTitle(
-  mediaType: MediaType,
-  summary: TmdbTitleSummary,
-  admin: ReturnType<typeof createAdminClient>
-): Promise<boolean> {
-  try {
-    const details = await getTitleDetails(mediaType, summary.id);
-    const watchProviders = await getWatchProviders(mediaType, summary.id);
-    const regionProviders = watchProviders.results[DEFAULT_REGION];
-    const rawPlatforms = regionProviders?.flatrate?.map((p) => p.provider_name) ?? [];
-    // Normalize TMDB's free-text provider names into our canonical
-    // platform list (see src/lib/platforms.ts) and drop anything that
-    // isn't one of the services users can pick at onboarding.
-    const platforms = [
-      ...new Set(rawPlatforms.map(normalizeProviderName).filter((p): p is NonNullable<typeof p> => p !== null)),
-    ];
-    // The real combined "where to watch" link for this title (JustWatch,
-    // via TMDB) — null when TMDB has no provider data for this region.
-    const justwatchLink = regionProviders?.link ?? null;
-
-    const castNames = [...(details.credits?.cast ?? [])]
-      .sort((a, b) => a.order - b.order)
-      .slice(0, 5)
-      .map((c) => c.name);
-
-    const { data: title, error: titleError } = await admin
-      .from("titles")
-      .upsert(
-        {
-          tmdb_id: details.id,
-          media_type: mediaType,
-          title: details.title ?? details.name ?? "Untitled",
-          overview: details.overview,
-          poster_path: details.poster_path,
-          genre_ids: details.genres.map((g) => g.id),
-          cast_names: castNames,
-          justwatch_link: justwatchLink,
-          vote_average: details.vote_average,
-          release_date: details.release_date ?? details.first_air_date ?? null,
-          cached_at: new Date().toISOString(),
-        },
-        { onConflict: "tmdb_id,media_type" }
-      )
-      .select("id")
-      .single();
-
-    if (titleError || !title) {
-      console.error(`Failed to upsert ${mediaType}/${details.id}:`, titleError?.message);
-      return false;
-    }
-
-    if (platforms.length === 0) return true;
-
-    const { error: availabilityError } = await admin.from("title_availability").upsert(
-      platforms.map((platformName) => ({
-        title_id: title.id,
-        region: DEFAULT_REGION,
-        platform_name: platformName,
-        cached_at: new Date().toISOString(),
-      })),
-      { onConflict: "title_id,region,platform_name" }
-    );
-
-    if (availabilityError) {
-      console.error(`Failed to upsert availability for ${mediaType}/${details.id}:`, availabilityError.message);
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.error(
-      `Skipping ${mediaType}/${summary.id} after error:`,
-      err instanceof Error ? err.message : err
-    );
-    return false;
-  }
-}
-
 async function main() {
-  const admin = createAdminClient();
   let succeeded = 0;
   let failed = 0;
 
@@ -134,8 +42,11 @@ async function main() {
 
     let done = 0;
     await inBatches(summaries, BATCH_SIZE, async (summary) => {
-      const ok = await seedTitle(mediaType, summary, admin);
-      if (ok) succeeded += 1;
+      // ingestTitle logs and returns null on its own failures — one
+      // flaky title (transient network error, an odd response shape)
+      // shouldn't abort the other ~100+ titles already in flight.
+      const id = await ingestTitle(mediaType, summary.id);
+      if (id !== null) succeeded += 1;
       else failed += 1;
       done += 1;
       if (done % 20 === 0) console.log(`  ${done}/${summaries.length} ${mediaType}`);
