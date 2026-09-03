@@ -37,6 +37,10 @@ export default function GlobalError({
             TRY AGAIN
           </button>
         </div>
+        <footer className="mt-6 px-4 text-center text-[11.5px] tracking-[.03em] text-text-3">
+          Streaming availability data provided by JustWatch. &copy; {new Date().getFullYear()} What
+          To Watch Next.
+        </footer>
       </body>
     </html>
   );
