@@ -120,7 +120,6 @@ function FeaturedCard({
 
           <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
             <WatchNowButton
-              title={title.title}
               matchingPlatforms={unrestricted ? [] : title.platforms}
               fallbackUrl={title.watchUrl}
             />

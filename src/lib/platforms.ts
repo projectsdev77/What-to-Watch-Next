@@ -53,25 +53,3 @@ export function normalizeProviderName(rawName: string): StreamingPlatform | null
 
   return null;
 }
-
-// TMDB's free API has no true per-platform deep link — it doesn't expose
-// a "this exact title on Netflix" URL for any provider (see README's
-// "Watch Now" section). This is the closest honest approximation without
-// a paid data source (Watchmode): each platform's own search results for
-// the title's name, rather than the title itself.
-const PLATFORM_SEARCH_URLS: Partial<Record<StreamingPlatform, (query: string) => string>> = {
-  Netflix: (q) => `https://www.netflix.com/search?q=${q}`,
-  Hulu: (q) => `https://www.hulu.com/search?q=${q}`,
-  "Disney+": (q) => `https://www.disneyplus.com/search?q=${q}`,
-  "Prime Video": (q) => `https://www.amazon.com/s?k=${q}&i=instant-video`,
-  "Apple TV+": (q) => `https://tv.apple.com/search?term=${q}`,
-  Max: (q) => `https://play.max.com/search?q=${q}`,
-  Peacock: (q) => `https://www.peacocktv.com/search?q=${q}`,
-  "Paramount+": (q) => `https://www.paramountplus.com/search?query=${q}`,
-};
-
-/** Null for "Other" (not a real platform) or any name we don't recognize. */
-export function platformSearchUrl(platform: string, titleName: string): string | null {
-  const builder = PLATFORM_SEARCH_URLS[platform as StreamingPlatform];
-  return builder ? builder(encodeURIComponent(titleName)) : null;
-}

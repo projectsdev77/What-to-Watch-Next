@@ -6,6 +6,8 @@
 // for a licensed data feed. See README "Data sources" for the tradeoffs
 // and why Watchmode is the recommended upgrade path later.
 
+import { DEFAULT_REGION } from "@/lib/platforms";
+
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 export const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w342";
 
@@ -119,7 +121,10 @@ export function getWatchProviders(mediaType: MediaType, id: number) {
   return tmdbFetch<TmdbWatchProviders>(`/${mediaType}/${id}/watch/providers`);
 }
 
-/** Public TMDB page for a title — used as the "Watch Now" destination for v1 (its "Where to Watch" section links onward to the actual platform). */
+/** Public TMDB "where to watch" page for a title — same shape as the
+ * `link` field /watch/providers itself returns (captured as
+ * titles.justwatch_link during seeding); this is the fallback for
+ * titles seeded before that field existed, or with no provider data. */
 export function tmdbTitleUrl(mediaType: MediaType, tmdbId: number) {
-  return `https://www.themoviedb.org/${mediaType}/${tmdbId}`;
+  return `https://www.themoviedb.org/${mediaType}/${tmdbId}/watch?locale=${DEFAULT_REGION}`;
 }
