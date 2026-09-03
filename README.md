@@ -44,6 +44,29 @@ confident "watch this tonight" pick instead of an endless scroll.
   above) is the recommended upgrade path if that experience matters
   enough to justify the cost.
 
+## Keeping the catalog fresh
+
+`npm run seed` is a one-time bootstrap (TMDB's "popular" lists, ~120
+titles) — enough to get onboarding's taste quiz working immediately, but
+small enough that an active user can exhaust it in weeks. The real,
+ongoing catalog growth is `/api/cron/refresh-catalog`
+(`src/app/api/cron/refresh-catalog/route.ts`): each call pages a bit
+further through TMDB's much larger `/discover` endpoint (picking up
+where the last call left off — `catalog_sync_state`, migration 0005)
+and wraps back to the start once it's paged through everything, so the
+catalog keeps both growing and refreshing rather than ever "running out."
+
+To actually run on a schedule:
+
+1. Apply `supabase/migrations/0005_catalog_sync_state.sql`.
+2. Set `CRON_SECRET` (a random string — the route refuses to run
+   without it) in your environment.
+3. On Vercel: `vercel.json` already declares the schedule (daily by
+   default — adjust to your plan's cron limits); set `CRON_SECRET` as a
+   project environment variable too, and Vercel sends it automatically.
+   Deploying elsewhere needs an equivalent external scheduler hitting
+   the same route with `Authorization: Bearer <CRON_SECRET>`.
+
 ## Reliability notes
 
 - **Rate limiting** on sign-in, sign-up, and password-reset requests

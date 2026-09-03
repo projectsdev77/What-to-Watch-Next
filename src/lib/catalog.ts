@@ -1,5 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getTitleDetails, getWatchProviders, type MediaType } from "@/lib/tmdb";
+import {
+  getTitleDetails,
+  getWatchProviders,
+  getDiscover,
+  DISCOVER_MAX_PAGE,
+  type MediaType,
+  type TmdbTitleSummary,
+} from "@/lib/tmdb";
 import { normalizeProviderName, DEFAULT_REGION } from "@/lib/platforms";
 
 /**
@@ -82,4 +89,69 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
     console.error(`Failed to ingest ${mediaType}/${tmdbId}:`, err instanceof Error ? err.message : err);
     return null;
   }
+}
+
+const INGEST_CONCURRENCY = 5; // be polite to TMDB's rate limit, same as scripts/seed-titles.ts
+
+export interface CatalogSyncResult {
+  mediaType: MediaType;
+  pagesFetched: number;
+  titlesIngested: number;
+  titlesFailed: number;
+  nextPage: number;
+}
+
+/**
+ * The ongoing "unlimited catalog" mechanism: pages through TMDB's
+ * /discover endpoint (not just the small "popular" list scripts/seed-
+ * titles.ts uses for its one-time bootstrap), picking up from wherever
+ * the last run left off — see supabase/migrations/0005_catalog_sync_state.sql
+ * — and wrapping back to page 1 once it reaches TMDB's page cap, so the
+ * catalog keeps both growing and refreshing rather than ever "finishing".
+ * Called from src/app/api/cron/refresh-catalog/route.ts on a schedule;
+ * pageCount is deliberately small per call to stay well inside a
+ * serverless function's time limit — the schedule is what makes this add
+ * up over time, not a single huge run.
+ */
+export async function syncCatalogBatch(mediaType: MediaType, pageCount: number): Promise<CatalogSyncResult> {
+  const admin = createAdminClient();
+
+  const { data: state } = await admin
+    .from("catalog_sync_state")
+    .select("last_page")
+    .eq("media_type", mediaType)
+    .maybeSingle();
+  let page = (state?.last_page as number | undefined) ?? 0;
+
+  const summaries: TmdbTitleSummary[] = [];
+  for (let i = 0; i < pageCount; i++) {
+    page = page >= DISCOVER_MAX_PAGE ? 1 : page + 1;
+    try {
+      const result = await getDiscover(mediaType, page);
+      summaries.push(...result.results);
+    } catch (err) {
+      console.error(`Discover fetch failed for ${mediaType} page ${page}:`, err instanceof Error ? err.message : err);
+    }
+  }
+
+  let titlesIngested = 0;
+  let titlesFailed = 0;
+  for (let i = 0; i < summaries.length; i += INGEST_CONCURRENCY) {
+    const batch = summaries.slice(i, i + INGEST_CONCURRENCY);
+    const results = await Promise.all(batch.map((s) => ingestTitle(mediaType, s.id)));
+    for (const id of results) {
+      if (id !== null) titlesIngested += 1;
+      else titlesFailed += 1;
+    }
+  }
+
+  const { error: stateError } = await admin
+    .from("catalog_sync_state")
+    .upsert(
+      { media_type: mediaType, last_page: page, updated_at: new Date().toISOString() },
+      { onConflict: "media_type" }
+    );
+  if (stateError) console.error(`Failed to save catalog sync state for ${mediaType}:`, stateError.message);
+
+  return { mediaType, pagesFetched: pageCount, titlesIngested, titlesFailed, nextPage: page };
 }

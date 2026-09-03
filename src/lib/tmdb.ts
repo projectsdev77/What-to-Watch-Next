@@ -105,6 +105,19 @@ export function getPopular(mediaType: MediaType, page = 1) {
   return tmdbFetch<{ results: TmdbTitleSummary[]; total_pages: number }>(`/${mediaType}/popular`, { page });
 }
 
+// TMDB caps /discover at 500 pages (~10,000 titles) per media type —
+// used for the ongoing catalog-broadening sync (src/lib/catalog.ts),
+// as opposed to getPopular's one-time, much smaller initial bootstrap.
+export const DISCOVER_MAX_PAGE = 500;
+
+export function getDiscover(mediaType: MediaType, page = 1) {
+  return tmdbFetch<{ results: TmdbTitleSummary[]; total_pages: number }>(`/discover/${mediaType}`, {
+    page,
+    sort_by: "popularity.desc",
+    include_adult: "false",
+  });
+}
+
 export function getGenres(mediaType: MediaType) {
   return tmdbFetch<{ genres: TmdbGenre[] }>(`/genre/${mediaType}/list`);
 }
