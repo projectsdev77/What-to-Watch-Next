@@ -347,3 +347,15 @@ select:focus-visible,
   outline: 2px solid var(--cg-accent);
   outline-offset: 2px;
 }
+
+/* Rubber-band/overscroll bounce past the top or bottom of the page
+ * reveals <body>'s own painted background (the CSS canvas-background
+ * fallback), not whatever's in the viewport — so on the 4 Cinematic
+ * Glass routes it otherwise always flashed the light theme's sky blue
+ * regardless of how dark the actual page content was. Toggled by
+ * ThemeBodyBackground; higher specificity than the plain .bg-sky
+ * utility (body.class beats a bare class), so this wins even though
+ * bg-sky stays on <body> itself as the default for every other route. */
+body.cg-body-dark {
+  background: var(--cg-ground);
+}
