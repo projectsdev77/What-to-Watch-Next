@@ -2,9 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/chrome/app-header";
-import { SiteFooter } from "@/components/chrome/site-footer";
 import { TMDB_POSTER_BASE_URL, searchMulti, type MediaType } from "@/lib/tmdb";
+import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { ingestAndViewAction } from "./actions";
 
 interface LocalResult {
@@ -66,40 +65,40 @@ export default async function SearchPage({
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-sky">
-      <AppHeader />
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-9 sm:px-10">
-        <form action="/search" method="GET" className="mb-8 flex max-w-[520px] gap-[10px]">
+    <div className="cg-screen relative min-h-screen bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
+      <div className="relative mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px] pb-16">
+        <CgNavPill />
+
+        <form action="/search" method="GET" className="mb-1 flex max-w-[520px] gap-[10px]">
           <input
             type="text"
             name="q"
             defaultValue={query}
             placeholder="Search for a movie or show"
             autoFocus
-            className="min-w-0 flex-1 border border-[rgba(12,35,52,.24)] bg-card px-4 py-[13px] text-[14.5px] text-text-1"
+            className="min-w-0 flex-1 rounded-full border border-white/16 bg-white/7 px-5 py-[13px] text-[14.5px] text-[var(--cg-text-1)] placeholder:text-[var(--cg-text-3)]"
           />
-          <button type="submit" className="bg-ink px-7 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white">
+          <button
+            type="submit"
+            className="rounded-full bg-[var(--cg-primary)] px-7 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-[var(--cg-on-primary)]"
+          >
             SEARCH
           </button>
         </form>
 
         {!query ? (
-          <p className="text-[14.5px] text-text-2">Search by title to find something specific.</p>
+          <p className="text-[14.5px] text-[var(--cg-text-2)]">Search by title to find something specific.</p>
         ) : localResults.length === 0 && liveResults.length === 0 ? (
-          <p className="text-[14.5px] text-text-2">Nothing found for &quot;{query}&quot;.</p>
+          <p className="text-[14.5px] text-[var(--cg-text-2)]">Nothing found for &quot;{query}&quot;.</p>
         ) : (
           <div className="flex flex-col gap-9">
             {localResults.length > 0 && (
               <section className="flex flex-col gap-4">
-                <h2 className="font-heading text-[14px] font-semibold tracking-[.16em]">RESULTS</h2>
+                <h2 className="text-[12px] font-bold tracking-[.18em] text-[var(--cg-text-3)]">RESULTS</h2>
                 <div className="grid grid-cols-2 gap-[18px] sm:grid-cols-3 md:grid-cols-6">
                   {localResults.map((title) => (
-                    <Link
-                      key={title.id}
-                      href={`/title/${title.id}`}
-                      className="flex flex-col gap-[10px] bg-card p-[11px] shadow-card"
-                    >
-                      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[rgba(12,35,52,.08)]">
+                    <Link key={title.id} href={`/title/${title.id}`} className="flex flex-col gap-[11px]">
+                      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[22px] bg-white/5 shadow-[0_18px_40px_rgba(2,6,14,.6)]">
                         {title.poster_path && (
                           <Image
                             src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
@@ -110,7 +109,7 @@ export default async function SearchPage({
                           />
                         )}
                       </div>
-                      <p className="truncate text-[13px] font-semibold">{title.title}</p>
+                      <p className="truncate text-[13px] font-semibold text-[var(--cg-text-1)]">{title.title}</p>
                     </Link>
                   ))}
                 </div>
@@ -119,8 +118,8 @@ export default async function SearchPage({
 
             {liveResults.length > 0 && (
               <section className="flex flex-col gap-4">
-                <h2 className="font-heading text-[14px] font-semibold tracking-[.16em]">MORE FROM TMDB</h2>
-                <p className="-mt-2 text-[13px] text-text-3">
+                <h2 className="text-[12px] font-bold tracking-[.18em] text-[var(--cg-text-3)]">MORE FROM TMDB</h2>
+                <p className="-mt-2 text-[13px] text-[var(--cg-text-3)]">
                   Not in our catalog yet — picking one adds it, then takes you straight there.
                 </p>
                 <div className="grid grid-cols-2 gap-[18px] sm:grid-cols-3 md:grid-cols-6">
@@ -128,12 +127,12 @@ export default async function SearchPage({
                     <form
                       key={`${title.mediaType}-${title.tmdbId}`}
                       action={ingestAndViewAction}
-                      className="flex flex-col gap-[10px] bg-card p-[11px] text-left shadow-card"
+                      className="flex flex-col gap-[11px] text-left"
                     >
                       <input type="hidden" name="tmdbId" value={title.tmdbId} />
                       <input type="hidden" name="mediaType" value={title.mediaType} />
-                      <button type="submit" className="flex flex-col gap-[10px] text-left">
-                        <div className="relative aspect-[2/3] w-full overflow-hidden bg-[rgba(12,35,52,.08)]">
+                      <button type="submit" className="flex flex-col gap-[11px] text-left">
+                        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[22px] bg-white/5 shadow-[0_18px_40px_rgba(2,6,14,.6)]">
                           {title.posterPath && (
                             <Image
                               src={`${TMDB_POSTER_BASE_URL}${title.posterPath}`}
@@ -144,7 +143,7 @@ export default async function SearchPage({
                             />
                           )}
                         </div>
-                        <p className="truncate text-[13px] font-semibold">{title.title}</p>
+                        <p className="truncate text-[13px] font-semibold text-[var(--cg-text-1)]">{title.title}</p>
                       </button>
                     </form>
                   ))}
@@ -153,8 +152,11 @@ export default async function SearchPage({
             )}
           </div>
         )}
-      </main>
-      <SiteFooter />
+
+        <span className="px-1 pt-1 text-[12px] text-[var(--cg-text-legal)]">
+          Streaming availability data provided by JustWatch. © 2026 What To Watch Next.
+        </span>
+      </div>
     </div>
   );
 }

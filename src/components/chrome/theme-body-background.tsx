@@ -3,10 +3,9 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-// The Cinematic Glass screens — exact pathnames for the 4 that have
-// none, plus title detail (/title/[id], a dynamic segment matched by
-// prefix below).
-const DARK_ROUTES = ["/", "/browse", "/watchlist", "/settings"];
+// The Cinematic Glass screens — exact pathnames, plus title detail
+// (/title/[id], a dynamic segment matched by prefix below).
+const DARK_ROUTES = ["/", "/browse", "/watchlist", "/settings", "/search"];
 const DARK_PREFIXES = ["/title/"];
 
 /** Keeps <body>'s own painted background in sync with whichever design
