@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { SiteFooter } from "@/components/chrome/site-footer";
 import { finishQuizAction } from "./actions";
 import { RATING_GOAL } from "./constants";
 import { QuizBatch } from "./quiz-batch";
@@ -59,6 +60,7 @@ export default async function QuizOnboardingPage() {
   const progressPercent = Math.min(100, Math.round((ratedCount / RATING_GOAL) * 100));
 
   return (
+    <>
     <main className="flex flex-1 flex-col bg-sky">
       <div className="flex items-center gap-6 bg-steel px-6 py-3.5 sm:px-10">
         <span className="font-wordmark text-[17px] tracking-[-.02em] text-white">WWN</span>
@@ -110,5 +112,7 @@ export default async function QuizOnboardingPage() {
         </form>
       </div>
     </main>
+    <SiteFooter />
+    </>
   );
 }

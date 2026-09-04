@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SiteFooter } from "@/components/chrome/site-footer";
 
 /**
  * Shared shell for the log-in / create-account screens: the diagonal
@@ -14,8 +15,14 @@ export function AuthHero({
   tagline: string;
   children: ReactNode;
 }) {
+  // SiteFooter used to render globally from the root layout; moved here
+  // (and into each other light-theme page individually) so the dark
+  // Cinematic Glass screens can each carry their own instead — rendering
+  // it once here covers all three auth screens that share AuthHero
+  // (login, forgot-password, reset-password).
   return (
-    <main className="flex flex-1 items-center justify-center bg-sky p-4 py-10 sm:p-8">
+    <>
+      <main className="flex flex-1 items-center justify-center bg-sky p-4 py-10 sm:p-8">
       <div className="relative min-h-[560px] w-full max-w-[1280px] overflow-hidden bg-steel shadow-panel">
         {/* left "photo" panel — gradient field standing in for real artwork */}
         <div
@@ -50,6 +57,8 @@ export function AuthHero({
           {children}
         </div>
       </div>
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

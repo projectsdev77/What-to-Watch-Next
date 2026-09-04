@@ -7,6 +7,7 @@ import { TMDB_POSTER_BASE_URL, tmdbTitleUrl } from "@/lib/tmdb";
 import { FeedbackActions, WatchlistButton } from "@/components/watch/feedback-actions";
 import { WatchNowButton } from "@/components/watch/watch-now-button";
 import { AppHeader } from "@/components/chrome/app-header";
+import { SiteFooter } from "@/components/chrome/site-footer";
 
 export default async function TitleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
@@ -158,6 +159,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/chrome/app-header";
+import { SiteFooter } from "@/components/chrome/site-footer";
 import { TMDB_POSTER_BASE_URL, searchMulti, type MediaType } from "@/lib/tmdb";
 import { ingestAndViewAction } from "./actions";
 
@@ -153,6 +154,7 @@ export default async function SearchPage({
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }
