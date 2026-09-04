@@ -3,11 +3,10 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { genreName } from "@/lib/genres";
 import { DEFAULT_REGION, NO_PREFERENCE_PLATFORM } from "@/lib/platforms";
-import { TMDB_POSTER_BASE_URL, tmdbTitleUrl } from "@/lib/tmdb";
-import { FeedbackActions, WatchlistButton } from "@/components/watch/feedback-actions";
-import { WatchNowButton } from "@/components/watch/watch-now-button";
-import { AppHeader } from "@/components/chrome/app-header";
-import { SiteFooter } from "@/components/chrome/site-footer";
+import { TMDB_BACKDROP_BASE_URL, TMDB_POSTER_BASE_URL, tmdbTitleUrl } from "@/lib/tmdb";
+import { CgNavPill } from "@/components/chrome/cg-nav-pill";
+import { CgWatchNowButton } from "@/components/watch/cg-watch-now-button";
+import { CgWatchlistButton, CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
 
 export default async function TitleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
@@ -67,99 +66,111 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   const matchingPlatforms =
     userRealPlatforms.length === 0 ? [] : platforms.filter((p) => userRealPlatforms.includes(p));
 
+  const chipCls = "rounded-full border border-white/20 bg-white/12 px-[15px] py-[7px] text-[12.5px] font-semibold backdrop-blur-[20px]";
+
   return (
-    <div className="flex flex-1 flex-col bg-sky">
-      <AppHeader />
-      <main className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col justify-center px-4 py-8 sm:px-10 sm:py-10">
-        <div className="relative p-[10px] sm:p-[22px]">
-          {/* Own overflow-hidden layer, separate from the card itself —
-              the Watchlist picker below needs to be able to pop out past
-              the card's edges without the scaled/blurred backdrop's crop
-              clipping it too. */}
-          <div className="absolute inset-0 overflow-hidden">
+    <div className="cg-screen relative min-h-screen overflow-hidden bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
+      {title.poster_path && (
+        <div className="absolute inset-x-0 top-0 h-[52%] opacity-60">
+          <Image
+            src={`${TMDB_BACKDROP_BASE_URL}${title.poster_path}`}
+            alt=""
+            aria-hidden
+            fill
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.7)_0%,rgba(6,11,20,.94)_34%,#080F1B_58%)]" />
+
+      <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col justify-center gap-6 p-[22px] pb-16">
+        <CgNavPill />
+
+        <div className="cg-pane flex flex-col gap-[18px] p-6 sm:flex-row sm:gap-[26px]">
+          <div className="relative mx-auto aspect-[2/3] w-[190px] shrink-0 overflow-hidden rounded-[var(--cg-r-poster)] shadow-[0_28px_60px_rgba(2,6,14,.75)] sm:mx-0 sm:w-[230px]">
             {title.poster_path && (
               <Image
                 src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
-                alt=""
-                aria-hidden
+                alt={title.title}
                 fill
-                sizes="100vw"
-                className="scale-125 object-cover blur-2xl brightness-75"
+                sizes="230px"
+                className="object-cover"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-ink/35 to-steel/25" />
           </div>
 
-          <div className="glass-crystal relative flex flex-col gap-[18px] p-6 sm:flex-row sm:gap-[26px]">
-            <div className="relative mx-auto aspect-[2/3] w-[150px] shrink-0 overflow-hidden rounded-[14px] shadow-[0_16px_38px_rgba(12,35,52,.3)] sm:mx-0 sm:w-[230px]">
-              {title.poster_path && (
-                <Image
-                  src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
-                  alt={title.title}
-                  fill
-                  sizes="230px"
-                  className="object-cover"
-                />
-              )}
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-[14px]">
-              <div className="flex flex-col gap-[8px]">
-                <h1 className="font-heading text-[28px] leading-[1.05] font-semibold tracking-[-.03em] sm:text-[36px]">
-                  {title.title}
-                </h1>
-                <div className="flex flex-wrap items-center gap-[9px] text-[13px] font-semibold text-text-2">
-                  {(title.genre_ids as number[]).map((gid) => (
-                    <span key={gid} className="bg-white/55 px-[9px] py-[3px] text-[11.5px] font-semibold">
-                      {genreName(gid)}
-                    </span>
-                  ))}
-                  {title.vote_average != null && <span>★ {title.vote_average.toFixed(1)}</span>}
-                  {title.imdb_rating != null && <span>IMDb {Number(title.imdb_rating).toFixed(1)}</span>}
-                  {title.rotten_tomatoes_rating && <span>🍅 {title.rotten_tomatoes_rating}</span>}
-                </div>
-                {platforms.length > 0 && (
-                  <span className="text-[13.5px] font-semibold text-text-2">{platforms.join(" · ")}</span>
+          <div className="flex min-w-0 flex-1 flex-col gap-[14px]">
+            <div className="flex flex-col gap-[10px]">
+              <h1 className="font-heading text-[28px] leading-[1.05] font-bold tracking-[-.03em] text-balance sm:text-[36px]">
+                {title.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-[9px]">
+                {(title.genre_ids as number[]).map((gid) => (
+                  <span key={gid} className={chipCls}>
+                    {genreName(gid)}
+                  </span>
+                ))}
+                {title.vote_average != null && (
+                  <span className="text-[13px] font-semibold text-[var(--cg-text-2)]">
+                    ★ {title.vote_average.toFixed(1)}
+                  </span>
+                )}
+                {title.imdb_rating != null && (
+                  <span className="text-[13px] font-semibold text-[var(--cg-text-2)]">
+                    IMDb {Number(title.imdb_rating).toFixed(1)}
+                  </span>
+                )}
+                {title.rotten_tomatoes_rating && (
+                  <span className="text-[13px] font-semibold text-[var(--cg-text-2)]">
+                    🍅 {title.rotten_tomatoes_rating}
+                  </span>
                 )}
               </div>
-
-              {title.overview && (
-                <p className="max-w-[75ch] text-[14.5px] leading-[1.65] text-text-2">{title.overview}</p>
+              {platforms.length > 0 && (
+                <span className="text-[13.5px] font-semibold text-[var(--cg-text-2)]">{platforms.join(" · ")}</span>
               )}
-
-              {title.cast_names && (title.cast_names as string[]).length > 0 && (
-                <p className="text-[13.5px] text-text-2">
-                  <span className="text-text-3">Cast: </span>
-                  {(title.cast_names as string[]).join(", ")}
-                </p>
-              )}
-
-              {feedback?.status && (
-                <p className="text-[12px] font-semibold tracking-[.08em] text-text-3 uppercase">
-                  Your status: {feedback.status}
-                </p>
-              )}
-
-              <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
-                <WatchNowButton
-                  titleId={title.id}
-                  redirectTo={redirectTo}
-                  matchingPlatforms={matchingPlatforms}
-                  fallbackUrl={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
-                />
-                <WatchlistButton
-                  titleId={title.id}
-                  redirectTo={redirectTo}
-                  isWatchlisted={isWatchlisted}
-                  lists={lists ?? []}
-                />
-              </div>
-              <FeedbackActions titleId={title.id} redirectTo={redirectTo} />
             </div>
+
+            {title.overview && (
+              <p className="max-w-[75ch] text-[14.5px] leading-[1.65] text-[var(--cg-text-2)]">{title.overview}</p>
+            )}
+
+            {title.cast_names && (title.cast_names as string[]).length > 0 && (
+              <p className="text-[13.5px] text-[var(--cg-text-2)]">
+                <span className="text-[var(--cg-text-3)]">Cast: </span>
+                {(title.cast_names as string[]).join(", ")}
+              </p>
+            )}
+
+            {feedback?.status && (
+              <p className="text-[12px] font-semibold tracking-[.08em] text-[var(--cg-text-3)] uppercase">
+                Your status: {feedback.status}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-[11px] pt-0.5">
+              <CgWatchNowButton
+                titleId={title.id}
+                redirectTo={redirectTo}
+                matchingPlatforms={matchingPlatforms}
+                fallbackUrl={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
+              />
+              <CgWatchlistButton
+                titleId={title.id}
+                redirectTo={redirectTo}
+                isWatchlisted={isWatchlisted}
+                lists={lists ?? []}
+              />
+            </div>
+            <CgFeedbackActions titleId={title.id} redirectTo={redirectTo} />
           </div>
         </div>
-      </main>
-      <SiteFooter />
+
+        <span className="px-1 text-[12px] text-[var(--cg-text-legal)]">
+          Streaming availability data provided by JustWatch. © 2026 What To Watch Next.
+        </span>
+      </div>
     </div>
   );
 }
