@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_REGION } from "@/lib/platforms";
 import { TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
-import { AppHeader } from "@/components/chrome/app-header";
+import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { createWatchlistAction, deleteWatchlistAction, removeFromListAction } from "./actions";
 
 interface WatchlistItemTitle {
@@ -57,88 +57,111 @@ export default async function WatchlistPage() {
   }
 
   const totalSaved = allTitleIds.length;
+  const ambientPoster =
+    (itemRows ?? [])
+      .map((r) => (r.titles as unknown as WatchlistItemTitle | null)?.poster_path)
+      .find((path): path is string => Boolean(path)) ?? null;
 
   return (
-    <div className="flex flex-1 flex-col bg-sky">
-      <AppHeader active="/watchlist" />
-      <main className="mx-auto w-full max-w-[1000px] flex-1 px-4 py-9 sm:px-10">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-baseline gap-4">
-            <h1 className="font-heading text-[22px] font-semibold tracking-[.2em]">WATCHLISTS</h1>
-            <span className="text-[13.5px] text-text-2">{totalSaved} saved</span>
-          </div>
-          <form action={createWatchlistAction} className="flex gap-[8px]">
+    <div className="cg-screen relative min-h-screen overflow-hidden bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
+      {ambientPoster && (
+        <div className="absolute inset-x-0 top-0 h-[36%] opacity-45">
+          <Image src={`${TMDB_POSTER_BASE_URL}${ambientPoster}`} alt="" aria-hidden fill className="object-cover" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.75)_0%,rgba(6,11,20,.96)_30%,#070D18_52%)]" />
+
+      <div className="relative mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px] pb-16">
+        <CgNavPill active="/watchlist" />
+
+        <div className="flex flex-wrap items-end gap-4 px-2 pt-1">
+          <span className="font-heading text-[38px] font-bold tracking-[-.035em]">Watchlists</span>
+          <span className="pb-2 text-[13.5px] text-[var(--cg-text-3)]">{totalSaved} saved</span>
+          <form action={createWatchlistAction} className="ml-auto flex items-center gap-[10px]">
             <input
               type="text"
               name="name"
               placeholder="New list name"
               required
-              className="border border-[rgba(12,35,52,.24)] bg-card px-3 py-2.5 text-[13.5px] text-text-1"
+              className="min-w-[210px] rounded-full border border-white/16 bg-white/7 px-[20px] py-[12px] text-[13px] text-[var(--cg-text-1)] placeholder:text-[var(--cg-text-3)]"
             />
-            <button type="submit" className="bg-ink px-5 py-2.5 text-[12px] font-bold tracking-[.1em] text-white">
+            <button
+              type="submit"
+              className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[13px] text-[12px] font-bold tracking-[.09em] text-[var(--cg-on-primary)]"
+            >
               + NEW LIST
             </button>
           </form>
         </div>
 
         {!lists || lists.length === 0 ? (
-          <div className="flex w-full max-w-[560px] flex-col items-start gap-4 bg-card p-9 shadow-card">
+          <div className="cg-pane flex w-full max-w-[560px] flex-col items-start gap-4 p-9">
             <h2 className="font-heading text-[20px] font-semibold tracking-[.18em]">NOTHING SAVED YET</h2>
-            <p className="max-w-[48ch] text-[15px] leading-[1.7] text-text-2">
+            <p className="max-w-[48ch] text-[15px] leading-[1.7] text-[var(--cg-text-2)]">
               Hit Watchlist on any title, or make a named list above (like &quot;Weekend Watches&quot;) and start
               adding to it.
             </p>
-            <Link href="/" className="bg-ink px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.12em] text-white">
+            <Link
+              href="/"
+              className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-on-primary)]"
+            >
               GO TO TONIGHT&apos;S PICK
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col gap-8">
+          <div className="cg-pane flex flex-col gap-[28px] p-[26px]">
             {lists.map((list) => {
               const items = itemsByListId.get(list.id as number) ?? [];
               return (
-                <section key={list.id} className="flex flex-col gap-3">
-                  <div className="flex items-baseline gap-4">
-                    <h2 className="font-heading text-[16px] font-semibold tracking-[.14em]">
-                      {(list.name as string).toUpperCase()}
-                    </h2>
-                    <span className="text-[13px] text-text-3">{items.length}</span>
-                    <div className="h-[2px] flex-1 bg-steel" />
+                <section key={list.id} className="flex flex-col gap-[14px]">
+                  <div className="flex items-center gap-[14px]">
+                    <span className="font-heading text-[17px] font-semibold tracking-[.06em] uppercase">
+                      {list.name as string}
+                    </span>
+                    <span className="rounded-full bg-white/10 px-[10px] py-[3px] text-[11.5px] font-semibold">
+                      {items.length}
+                    </span>
+                    <div className="h-px flex-1 bg-white/10" />
                     <form action={deleteWatchlistAction}>
                       <input type="hidden" name="watchlistId" value={list.id} />
-                      <button type="submit" className="text-[12px] font-semibold text-danger-ink underline">
+                      <button
+                        type="submit"
+                        className="text-[11.5px] font-bold tracking-[.09em] text-[var(--cg-danger)]"
+                      >
                         DELETE LIST
                       </button>
                     </form>
                   </div>
 
                   {items.length === 0 ? (
-                    <p className="text-[13.5px] text-text-2">Nothing in this list yet.</p>
+                    <div className="flex items-center justify-center rounded-[var(--cg-r-row)] border border-dashed border-white/16 bg-white/3 p-7">
+                      <span className="text-[13.5px] text-[var(--cg-text-3)]">Nothing in this list yet.</span>
+                    </div>
                   ) : (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-[11px]">
                       {items.map((title) => (
-                        <div key={title.id} className="flex items-center gap-5 bg-card p-4 shadow-card">
+                        <div key={title.id} className="cg-row flex items-center gap-[18px] p-[13px]">
                           <Link
                             href={`/title/${title.id}`}
-                            className="relative h-[104px] w-[74px] shrink-0 overflow-hidden bg-[rgba(12,35,52,.08)]"
+                            className="relative h-[92px] w-[62px] shrink-0 overflow-hidden rounded-[var(--cg-r-input)] shadow-[0_12px_26px_rgba(2,6,14,.55)]"
                           >
                             {title.poster_path && (
                               <Image
                                 src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
                                 alt={title.title}
                                 fill
-                                sizes="74px"
+                                sizes="62px"
                                 className="object-cover"
                               />
                             )}
                           </Link>
                           <div className="min-w-0 flex-1">
                             <Link href={`/title/${title.id}`} className="block truncate hover:underline">
-                              <span className="font-heading text-[20px] font-semibold tracking-[-.02em]">
+                              <span className="font-heading text-[19px] font-semibold tracking-[-.025em]">
                                 {title.title}
                               </span>
                             </Link>
-                            <p className="truncate text-[13px] text-text-2">
+                            <p className="truncate text-[12.5px] text-[var(--cg-text-3)]">
                               {(platformsByTitleId.get(title.id) ?? []).join(" · ") ||
                                 "Not currently available on your platforms"}
                             </p>
@@ -148,7 +171,7 @@ export default async function WatchlistPage() {
                             <input type="hidden" name="titleId" value={title.id} />
                             <button
                               type="submit"
-                              className="border border-[rgba(12,35,52,.28)] px-[22px] py-3 text-[12.5px] font-bold tracking-[.1em]"
+                              className="rounded-full border border-white/18 bg-white/8 px-[24px] py-[12px] text-[12px] font-semibold tracking-[.08em]"
                             >
                               REMOVE
                             </button>
@@ -162,7 +185,11 @@ export default async function WatchlistPage() {
             })}
           </div>
         )}
-      </main>
+
+        <span className="px-1 pt-1 text-[12px] text-[var(--cg-text-legal)]">
+          Streaming availability data provided by JustWatch. © 2026 What To Watch Next.
+        </span>
+      </div>
     </div>
   );
 }

@@ -45,6 +45,55 @@
   --e-modal: 0 36px 80px rgba(12, 35, 52, 0.4);
 }
 
+/* ---------------------------------------------------------------------
+ * Cinematic Glass — a second, dark design system used only by the four
+ * redesigned screens (Tonight's Pick, Browse, Watchlists, Settings —
+ * see the client-provided handoff; onboarding and auth screens were
+ * explicitly excluded from that redesign and stay on the system above).
+ * Deliberately namespaced --cg-* and kept out of @theme inline so it
+ * never generates a Tailwind utility name that could collide with the
+ * light system's classes (bg-card, text-ink, etc.) used everywhere
+ * else — components reference these via Tailwind arbitrary values,
+ * e.g. bg-[var(--cg-ground)].
+ * ------------------------------------------------------------------- */
+:root {
+  /* ground */
+  --cg-ground: #060b14;
+  --cg-ground-alt: #080f1b;
+  --cg-scrim: rgba(6, 11, 20, 0.55);
+
+  /* text — three tiers, one hue */
+  --cg-text-1: #eaf2fa;
+  --cg-text-2: rgba(234, 242, 250, 0.72);
+  --cg-text-3: rgba(234, 242, 250, 0.58); /* muted floor — never go below .58 (AA) */
+  --cg-text-legal: rgba(234, 242, 250, 0.45); /* footer legal line only, non-essential */
+
+  /* accent — used 3x per screen maximum */
+  --cg-accent: #9fd4ec;
+  --cg-primary: #eaf2fa; /* the one white pill button per screen */
+  --cg-on-primary: #08121f;
+  --cg-danger: #f0a48c;
+  --cg-danger-bg: rgba(214, 90, 64, 0.14);
+  --cg-danger-br: rgba(214, 90, 64, 0.38);
+
+  /* radius — nothing is square */
+  --cg-r-screen: 32px;
+  --cg-r-pane: 28px;
+  --cg-r-row: 22px;
+  --cg-r-poster: 20px; /* 22px on the Browse grid */
+  --cg-r-input: 16px;
+  --cg-r-check: 6px;
+  --cg-r-pill: 999px;
+
+  /* space — 4px base */
+  --cg-s-1: 8px;
+  --cg-s-2: 11px;
+  --cg-s-3: 14px;
+  --cg-s-4: 18px;
+  --cg-s-5: 22px;
+  --cg-s-6: 30px;
+}
+
 @theme inline {
   --color-sky: var(--sky);
   --color-sky-deep: var(--sky-deep);
@@ -187,6 +236,67 @@
       -webkit-backdrop-filter: none;
     }
   }
+
+  /* Cinematic Glass primitives (handoff §2). Never blur two levels
+   * deep: .cg-pane and .cg-nav blur; .cg-row (nested inside a pane) is
+   * a flat translucent fill with no backdrop-filter of its own — the
+   * repeated blur is what turns the effect to milk and drops frames. */
+  .cg-pane {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    border-radius: var(--cg-r-pane);
+    color: var(--cg-text-1);
+  }
+  .cg-nav {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-radius: var(--cg-r-pill);
+    color: var(--cg-text-1);
+  }
+  .cg-row {
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--cg-r-row);
+    color: var(--cg-text-1);
+  }
+  .cg-chip {
+    background: rgba(6, 11, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: var(--cg-r-pill);
+    color: var(--cg-text-1);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .cg-pane,
+    .cg-nav {
+      background: #101825;
+    }
+    .cg-chip {
+      background: #0b1420;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .cg-pane,
+    .cg-nav {
+      background: #101825;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .cg-chip {
+      background: #0b1420;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -223,5 +333,17 @@ input:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Cinematic Glass screens override the outline color — an ink-navy
+ * outline is invisible against this system's near-black ground. Higher
+ * specificity than the rule above wins regardless of source order. */
+.cg-screen a:focus-visible,
+.cg-screen button:focus-visible,
+.cg-screen input:focus-visible,
+.cg-screen select:focus-visible,
+.cg-screen [tabindex]:focus-visible {
+  outline: 2px solid var(--cg-accent);
   outline-offset: 2px;
 }

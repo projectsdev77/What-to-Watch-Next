@@ -1,12 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getDiscoverList, type CandidateStatus } from "@/lib/recommendations";
-import { parseMediaType, type MediaType } from "@/lib/tmdb";
-import { TitleCard } from "@/components/watch/title-card";
-import { AppHeader } from "@/components/chrome/app-header";
-import { MediaTypeTabs } from "@/components/chrome/media-type-tabs";
+import { parseMediaType, TMDB_POSTER_BASE_URL, type MediaType } from "@/lib/tmdb";
+import { CgPosterCard } from "@/components/watch/cg-poster-card";
+import { CgNavPill } from "@/components/chrome/cg-nav-pill";
+import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
 
 export default async function BrowsePage({
   searchParams,
@@ -33,73 +34,100 @@ export default async function BrowsePage({
     return <EmptyState status={result.status} mediaType={mediaType} />;
   }
 
-  const query = new URLSearchParams();
-  if (platform) query.set("platform", platform);
-  if (genre) query.set("genre", genre);
-  if (mediaType === "tv") query.set("type", "tv");
-  const redirectTo = query.size > 0 ? `/browse?${query}` : "/browse";
   const hasFilters = Boolean(platform || genre);
   const clearHref = mediaType === "tv" ? "/browse?type=tv" : "/browse";
+  const ambientPoster = result.titles[0]?.posterPath ?? null;
 
   return (
-    <div className="flex flex-1 flex-col bg-sky">
-      <AppHeader active="/browse" />
-      <MediaTypeTabs active={mediaType} basePath="/browse" preserveParams={{ platform, genre }} />
+    <div className="cg-screen relative min-h-screen overflow-hidden bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
+      {ambientPoster && (
+        <div className="absolute inset-x-0 top-0 h-[40%] opacity-50">
+          <Image src={`${TMDB_POSTER_BASE_URL}${ambientPoster}`} alt="" aria-hidden fill className="object-cover" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.72)_0%,rgba(6,11,20,.95)_32%,#070D18_56%)]" />
 
-      <div className="flex flex-wrap items-center gap-3 bg-steel-dark px-6 py-3.5 sm:px-10">
-        <span className="text-[11.5px] font-bold tracking-[.16em] text-white/80">FILTER</span>
-        <form className="flex flex-wrap items-center gap-[10px]" action="/browse">
-          {mediaType === "tv" && <input type="hidden" name="type" value="tv" />}
-          <select
-            name="platform"
-            defaultValue={platform ?? ""}
-            className="min-w-[170px] bg-white px-[15px] py-[10px] text-[13.5px] text-text-1"
-          >
-            <option value="">All platforms</option>
-            {result.availablePlatforms.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <select
-            name="genre"
-            defaultValue={genre ?? ""}
-            className="min-w-[170px] bg-white px-[15px] py-[10px] text-[13.5px] text-text-1"
-          >
-            <option value="">All genres</option>
-            {result.availableGenres.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="bg-mist px-6 py-[11px] text-[12.5px] font-bold tracking-[.1em] text-ink">
-            APPLY
-          </button>
-          {hasFilters && (
-            <Link href={clearHref} className="text-[13px] font-semibold text-white/85 underline">
-              Clear
-            </Link>
-          )}
-        </form>
-        <span className="ml-auto text-[13px] text-white/85">{result.titles.length} titles</span>
-      </div>
+      <div className="relative mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px] pb-16">
+        <CgNavPill active="/browse" />
 
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-9 sm:px-10">
+        <div className="flex flex-wrap items-center gap-[14px] px-1">
+          <CgMediaTypeTabs active={mediaType} basePath="/browse" preserveParams={{ platform, genre }} />
+          <div className="ml-auto flex flex-wrap items-center gap-[10px]">
+            <span className="text-[11.5px] font-bold tracking-[.18em] text-[var(--cg-text-3)]">FILTER</span>
+            <form className="flex flex-wrap items-center gap-[10px]" action="/browse">
+              {mediaType === "tv" && <input type="hidden" name="type" value="tv" />}
+              <div className="relative">
+                <select
+                  name="platform"
+                  defaultValue={platform ?? ""}
+                  className="min-w-[165px] appearance-none rounded-full border border-white/16 bg-white/7 py-[11px] pr-[34px] pl-[18px] text-[13px] text-[var(--cg-text-1)]"
+                >
+                  <option className="text-black" value="">
+                    All platforms
+                  </option>
+                  {result.availablePlatforms.map((p) => (
+                    <option className="text-black" key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute top-1/2 right-[14px] -translate-y-1/2 text-[var(--cg-text-3)]">
+                  ⌄
+                </span>
+              </div>
+              <div className="relative">
+                <select
+                  name="genre"
+                  defaultValue={genre ?? ""}
+                  className="min-w-[165px] appearance-none rounded-full border border-white/16 bg-white/7 py-[11px] pr-[34px] pl-[18px] text-[13px] text-[var(--cg-text-1)]"
+                >
+                  <option className="text-black" value="">
+                    All genres
+                  </option>
+                  {result.availableGenres.map((g) => (
+                    <option className="text-black" key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute top-1/2 right-[14px] -translate-y-1/2 text-[var(--cg-text-3)]">
+                  ⌄
+                </span>
+              </div>
+              <button
+                type="submit"
+                className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[12px] text-[12px] font-bold tracking-[.09em] text-[var(--cg-on-primary)]"
+              >
+                APPLY
+              </button>
+              {hasFilters && (
+                <Link href={clearHref} className="text-[13px] text-[var(--cg-accent)] underline">
+                  Clear
+                </Link>
+              )}
+            </form>
+            <span className="pl-1 text-[12.5px] text-[var(--cg-text-3)]">{result.titles.length} titles</span>
+          </div>
+        </div>
+
         {result.titles.length === 0 ? (
-          <div className="flex w-full max-w-[560px] flex-col items-start gap-4 bg-card p-9 shadow-card">
-            <h1 className="font-heading text-[20px] font-semibold tracking-[.16em]">NOTHING ON THOSE FILTERS</h1>
-            <p className="max-w-[44ch] text-[14.5px] leading-[1.65] text-text-2">
+          <div className="cg-pane flex w-full max-w-[560px] flex-col items-start gap-4 p-9">
+            <h1 className="font-heading text-[20px] font-semibold tracking-[.16em] text-[var(--cg-text-1)]">
+              NOTHING ON THOSE FILTERS
+            </h1>
+            <p className="max-w-[44ch] text-[14.5px] leading-[1.65] text-[var(--cg-text-2)]">
               No titles match that combination right now. Widen the platform or the genre and try again.
             </p>
             <div className="flex gap-[10px] pt-1">
-              <Link href={clearHref} className="bg-ink px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white">
+              <Link
+                href={clearHref}
+                className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.1em] text-[var(--cg-on-primary)]"
+              >
                 CLEAR FILTERS
               </Link>
               <Link
                 href="/settings"
-                className="border border-[rgba(12,35,52,.28)] px-6 py-[13px] text-[12.5px] font-bold tracking-[.1em]"
+                className="rounded-full border border-white/18 bg-white/9 px-6 py-[13px] text-[12.5px] font-semibold tracking-[.1em] text-[var(--cg-text-1)]"
               >
                 EDIT PLATFORMS
               </Link>
@@ -108,11 +136,15 @@ export default async function BrowsePage({
         ) : (
           <div className="grid grid-cols-2 gap-[18px] sm:grid-cols-3 md:grid-cols-6">
             {result.titles.map((title) => (
-              <TitleCard key={title.id} title={title} redirectTo={redirectTo} />
+              <CgPosterCard key={title.id} title={title} radiusPx={22} hoverPlay />
             ))}
           </div>
         )}
-      </main>
+
+        <span className="px-1 pt-1 text-[12px] text-[var(--cg-text-legal)]">
+          Streaming availability data provided by JustWatch. © 2026 What To Watch Next.
+        </span>
+      </div>
     </div>
   );
 }
@@ -142,20 +174,27 @@ function EmptyState({ status, mediaType }: { status: CandidateStatus; mediaType:
   const { heading, body, cta } = copy[status];
 
   return (
-    <div className="flex flex-1 flex-col bg-sky">
-      <AppHeader active="/browse" />
-      <MediaTypeTabs active={mediaType} basePath="/browse" />
-      <main className="flex flex-1 flex-col items-center justify-center px-4 py-16">
-        <div className="flex w-full max-w-[520px] flex-col items-start gap-4 bg-card p-9 shadow-card">
-          <h1 className="font-heading text-[20px] font-semibold tracking-[.18em]">{heading}</h1>
-          <p className="max-w-[48ch] text-[15px] leading-[1.7] text-text-2">{body}</p>
-          {cta && (
-            <Link href={cta.href} className="bg-ink px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.1em] text-white">
-              {cta.label}
-            </Link>
-          )}
+    <div className="cg-screen min-h-screen bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px]">
+        <CgNavPill active="/browse" />
+        <CgMediaTypeTabs active={mediaType} basePath="/browse" />
+        <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+          <div className="cg-pane flex w-full max-w-[520px] flex-col items-start gap-4 p-9">
+            <h1 className="font-heading text-[20px] font-semibold tracking-[.18em] text-[var(--cg-text-1)]">
+              {heading}
+            </h1>
+            <p className="max-w-[48ch] text-[15px] leading-[1.7] text-[var(--cg-text-2)]">{body}</p>
+            {cta && (
+              <Link
+                href={cta.href}
+                className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[13px] text-[12.5px] font-bold tracking-[.1em] text-[var(--cg-on-primary)]"
+              >
+                {cta.label}
+              </Link>
+            )}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
