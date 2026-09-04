@@ -9,7 +9,17 @@
 import { DEFAULT_REGION } from "@/lib/platforms";
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
-export const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w342";
+// w342 was soft even at typical card sizes on a high-DPI screen (a
+// ~200px CSS-wide card needs ~400px of real source detail at 2x); w780
+// covers every poster/card use in the app crisply. Next's own image
+// optimizer (next.config.ts) still downsizes this per request, so this
+// doesn't mean sending full-size images to small thumbnails.
+export const TMDB_POSTER_BASE_URL = "https://image.tmdb.org/t/p/w780";
+// For the large, stretched-to-near-full-width ambient/hero backdrops
+// (Tonight's Pick's hero backdrop, Browse/Watchlists' ambient still) —
+// those need real detail at up to ~1280px wide, well past what even
+// w780 can supply without looking soft.
+export const TMDB_BACKDROP_BASE_URL = "https://image.tmdb.org/t/p/original";
 
 export type MediaType = "movie" | "tv";
 

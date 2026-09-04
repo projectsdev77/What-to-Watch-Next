@@ -3,7 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_REGION } from "@/lib/platforms";
-import { TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
+import { TMDB_BACKDROP_BASE_URL, TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { createWatchlistAction, deleteWatchlistAction, removeFromListAction } from "./actions";
 
@@ -66,7 +66,14 @@ export default async function WatchlistPage() {
     <div className="cg-screen relative min-h-screen overflow-hidden bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
       {ambientPoster && (
         <div className="absolute inset-x-0 top-0 h-[36%] opacity-45">
-          <Image src={`${TMDB_POSTER_BASE_URL}${ambientPoster}`} alt="" aria-hidden fill className="object-cover" />
+          <Image
+            src={`${TMDB_BACKDROP_BASE_URL}${ambientPoster}`}
+            alt=""
+            aria-hidden
+            fill
+            sizes="100vw"
+            className="object-cover"
+          />
         </div>
       )}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.75)_0%,rgba(6,11,20,.96)_30%,#070D18_52%)]" />

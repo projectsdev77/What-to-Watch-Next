@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getDiscoverList, type CandidateStatus } from "@/lib/recommendations";
-import { parseMediaType, TMDB_POSTER_BASE_URL, type MediaType } from "@/lib/tmdb";
+import { parseMediaType, TMDB_BACKDROP_BASE_URL, type MediaType } from "@/lib/tmdb";
 import { CgPosterCard } from "@/components/watch/cg-poster-card";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
@@ -42,7 +42,14 @@ export default async function BrowsePage({
     <div className="cg-screen relative min-h-screen overflow-hidden bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
       {ambientPoster && (
         <div className="absolute inset-x-0 top-0 h-[40%] opacity-50">
-          <Image src={`${TMDB_POSTER_BASE_URL}${ambientPoster}`} alt="" aria-hidden fill className="object-cover" />
+          <Image
+            src={`${TMDB_BACKDROP_BASE_URL}${ambientPoster}`}
+            alt=""
+            aria-hidden
+            fill
+            sizes="100vw"
+            className="object-cover"
+          />
         </div>
       )}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.72)_0%,rgba(6,11,20,.95)_32%,#070D18_56%)]" />
