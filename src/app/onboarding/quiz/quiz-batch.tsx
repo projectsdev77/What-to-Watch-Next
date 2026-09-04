@@ -31,7 +31,7 @@ export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
 
   if (visible.length === 0) {
     return (
-      <p className="mb-8 text-[14.5px] text-text-2">
+      <p className="mb-8 text-[14.5px] text-[var(--cg-text-2)]">
         That&apos;s everything in this batch — hit the button below, or rate a few more once more
         titles are available.
       </p>
@@ -43,9 +43,9 @@ export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
       {visible.map((title) => (
         <div
           key={title.id}
-          className="animate-[quiz-card-in_0.4s_ease-out] flex flex-col gap-[10px] bg-card p-3 shadow-card"
+          className="cg-pane animate-[quiz-card-in_0.4s_ease-out] flex flex-col gap-[10px] p-3"
         >
-          <div className="relative aspect-[2/3] w-full overflow-hidden bg-[rgba(12,35,52,.08)]">
+          <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[var(--cg-r-poster)] bg-white/5">
             {title.poster_path && (
               <Image
                 src={`${TMDB_POSTER_BASE_URL}${title.poster_path}`}
@@ -56,20 +56,22 @@ export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
               />
             )}
           </div>
-          <p className="line-clamp-2 min-h-[2.6em] text-[13.5px] leading-[1.3] font-semibold">{title.title}</p>
+          <p className="line-clamp-2 min-h-[2.6em] text-[13.5px] leading-[1.3] font-semibold text-[var(--cg-text-1)]">
+            {title.title}
+          </p>
           <div className="flex flex-col gap-[6px]">
             <div className="flex gap-[6px]">
               <form action={rateTitleAction} className="flex-1">
                 <input type="hidden" name="titleId" value={title.id} />
                 <input type="hidden" name="status" value="liked" />
-                <button className="flex w-full items-center justify-center gap-[5px] bg-ink py-[10px] text-[11.5px] font-bold tracking-[.05em] text-white transition-opacity hover:opacity-90">
+                <button className="flex w-full items-center justify-center gap-[5px] rounded-[var(--cg-r-input)] bg-[var(--cg-primary)] py-[10px] text-[11.5px] font-bold tracking-[.05em] text-[var(--cg-on-primary)] transition-opacity hover:opacity-90">
                   <span aria-hidden>✓</span> LIKED
                 </button>
               </form>
               <form action={rateTitleAction} className="flex-1">
                 <input type="hidden" name="titleId" value={title.id} />
                 <input type="hidden" name="status" value="disliked" />
-                <button className="flex w-full items-center justify-center gap-[5px] border border-[rgba(12,35,52,.28)] py-[10px] text-[11.5px] font-bold tracking-[.05em] text-text-2 transition-colors hover:border-ink hover:text-ink">
+                <button className="flex w-full items-center justify-center gap-[5px] rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 py-[10px] text-[11.5px] font-bold tracking-[.05em] text-[var(--cg-text-2)] transition-colors hover:border-white/35 hover:text-[var(--cg-text-1)]">
                   <span aria-hidden>✕</span> DISLIKED
                 </button>
               </form>
@@ -77,7 +79,7 @@ export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
             <button
               type="button"
               onClick={() => setDismissedIds((prev) => new Set(prev).add(title.id))}
-              className="py-[3px] text-center text-[11.5px] font-medium text-text-3 underline decoration-[rgba(12,35,52,.35)] underline-offset-2 transition-colors hover:text-text-2 hover:decoration-current"
+              className="py-[3px] text-center text-[11.5px] font-medium text-[var(--cg-text-3)] underline decoration-white/30 underline-offset-2 transition-colors hover:text-[var(--cg-text-2)] hover:decoration-current"
             >
               Haven&apos;t watched it
             </button>

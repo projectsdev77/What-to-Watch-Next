@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AuthForm } from "@/components/auth/auth-form";
-import { AuthHero } from "@/components/auth/auth-hero";
+import { CgAuthForm } from "@/components/auth/cg-auth-form";
+import { CgAuthHero } from "@/components/auth/cg-auth-hero";
 
 export default async function LoginPage({
   searchParams,
@@ -19,34 +19,32 @@ export default async function LoginPage({
   const isSignup = mode === "signup";
 
   return (
-    <AuthHero tagline={isSignup ? "TAKE THE TASTE QUIZ AFTER SIGN UP" : "LOG IN TO SEE TONIGHT'S PICK"}>
-      <div className="w-full max-w-[380px] bg-card px-8 py-9 shadow-panel">
-        {accountDeleted === "true" && (
-          <p className="mb-5 text-[13px] font-medium text-steel-dark">
-            Your account has been permanently deleted.
-          </p>
-        )}
-        <div className="mb-5 flex flex-col gap-5">
-          <AuthForm mode={isSignup ? "signup" : "login"} />
-        </div>
-        <p className="text-center text-[13px] text-text-2">
-          {isSignup ? (
-            <>
-              Already have an account?{" "}
-              <Link href="/login" className="font-medium text-steel-dark">
-                Log in
-              </Link>
-            </>
-          ) : (
-            <>
-              New here?{" "}
-              <Link href="/login?mode=signup" className="font-medium text-steel-dark">
-                Create an account
-              </Link>
-            </>
-          )}
+    <CgAuthHero tagline={isSignup ? "TAKE THE TASTE QUIZ AFTER SIGN UP" : "LOG IN TO SEE TONIGHT'S PICK"}>
+      {accountDeleted === "true" && (
+        <p className="mb-5 text-[13px] font-medium text-[var(--cg-accent)]">
+          Your account has been permanently deleted.
         </p>
+      )}
+      <div className="mb-5 flex flex-col gap-5">
+        <CgAuthForm mode={isSignup ? "signup" : "login"} />
       </div>
-    </AuthHero>
+      <p className="text-center text-[13px] text-[var(--cg-text-2)]">
+        {isSignup ? (
+          <>
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-[var(--cg-accent)]">
+              Log in
+            </Link>
+          </>
+        ) : (
+          <>
+            New here?{" "}
+            <Link href="/login?mode=signup" className="font-medium text-[var(--cg-accent)]">
+              Create an account
+            </Link>
+          </>
+        )}
+      </p>
+    </CgAuthHero>
   );
 }

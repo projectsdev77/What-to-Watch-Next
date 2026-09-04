@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { PlatformsFormState } from "@/components/settings/platform-picker-form";
+import type { PlatformsFormState } from "@/components/settings/cg-platform-picker-form";
 import { DELETE_CONFIRMATION_TEXT } from "@/lib/account";
 import { checkRateLimit } from "@/lib/rate-limit";
 

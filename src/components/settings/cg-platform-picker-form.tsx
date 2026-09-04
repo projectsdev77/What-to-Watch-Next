@@ -3,12 +3,15 @@
 import type { ReactNode } from "react";
 import { useActionState, useRef, useState } from "react";
 import { STREAMING_PLATFORMS } from "@/lib/platforms";
-import type { PlatformsFormState } from "./platform-picker-form";
 
-/** Cinematic Glass version of PlatformPickerForm, for Settings only —
- * onboarding/platforms keeps the original light-theme PlatformPickerForm
- * unchanged, since that screen was explicitly out of scope for this
- * redesign. Same server action, same requireChange behavior, new look. */
+export interface PlatformsFormState {
+  error: string;
+}
+
+/** Cinematic Glass version of PlatformPickerForm — shared by Settings and
+ * onboarding/platforms. The submit button stays disabled until the checked
+ * set differs from `selected`; onboarding starts from an empty `selected`,
+ * so any check there enables it immediately. */
 export function CgPlatformPickerForm({
   action,
   selected,

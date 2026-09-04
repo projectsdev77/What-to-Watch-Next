@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { PlatformsFormState } from "@/components/settings/platform-picker-form";
+import type { PlatformsFormState } from "@/components/settings/cg-platform-picker-form";
 
 export async function savePlatformsAction(
   _prevState: PlatformsFormState | undefined,
