@@ -65,7 +65,11 @@ interface CandidatePool {
 // bonus on top of its genre-match score, big enough to outrank most
 // organic matches without being an unconditional override.
 const WATCHLIST_BONUS = 3;
-const MAX_CANDIDATES = 300; // defensive cap for the .in() query at MVP scale
+// Defensive cap for the .in() query, not a "how many titles should Browse
+// show" limit — Browse asks for up to 200 (see browse/page.tsx) and the
+// catalog keeps growing via the refresh-catalog cron job, so this just
+// needs to comfortably exceed that, not artificially constrain it.
+const MAX_CANDIDATES = 1000;
 
 // "Not today" (status: skipped) means exactly that — not forever. Liked,
 // disliked, and watched are genuine judgments and stay excluded

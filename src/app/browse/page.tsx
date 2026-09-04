@@ -28,7 +28,7 @@ export default async function BrowsePage({
   const genreId = genre ? Number(genre) : undefined;
   const mediaType = parseMediaType(type);
 
-  const result = await getDiscoverList(user.id, { platform, genreId, mediaType, limit: 60 });
+  const result = await getDiscoverList(user.id, { platform, genreId, mediaType, limit: 200 });
 
   if (result.status !== "ok") {
     return <EmptyState status={result.status} mediaType={mediaType} />;
