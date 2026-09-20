@@ -6,7 +6,6 @@ import { signOutAction } from "@/app/login/actions";
 
 const NAV_LINKS = [
   { href: "/", label: "Tonight's pick" },
-  { href: "/browse", label: "Browse" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/settings", label: "Settings" },
 ] as const;
@@ -24,11 +23,10 @@ function linkClass(isActive: boolean, mobile: boolean) {
 
 /** Client half of CgNavPill — needs interactivity for the mobile
  * hamburger toggle, which a Server Component (the auth lookup half)
- * can't provide. Below the `lg` breakpoint (four links + search + email
- * + logout don't fit comfortably any narrower, even on a tablet) the
- * pill collapses to just the wordmark + a toggle button; tapping it
- * drops an expanded panel in normal document flow (not an overlay), so
- * it pushes page content down instead of covering it. */
+ * can't provide. Below the `lg` breakpoint the pill collapses to just
+ * the wordmark + a toggle button; tapping it drops an expanded panel
+ * in normal document flow (not an overlay), so it pushes page content
+ * down instead of covering it. */
 export function CgNavPillClient({ active, userEmail }: { active?: NavHref; userEmail: string | null }) {
   const [open, setOpen] = useState(false);
 
@@ -44,17 +42,6 @@ export function CgNavPillClient({ active, userEmail }: { active?: NavHref; userE
             </Link>
           ))}
         </div>
-
-        {userEmail && (
-          <form action="/search" method="GET" className="hidden items-center lg:flex">
-            <input
-              type="text"
-              name="q"
-              placeholder="Search titles"
-              className="min-w-[190px] rounded-full border border-white/14 bg-white/6 px-[18px] py-[9px] text-[13px] text-[var(--cg-text-1)] placeholder:text-[var(--cg-text-3)] focus:border-white/30 focus:outline-none"
-            />
-          </form>
-        )}
 
         {userEmail && (
           <form action={signOutAction} className="ml-auto hidden items-center gap-[13px] lg:flex">
@@ -93,17 +80,6 @@ export function CgNavPillClient({ active, userEmail }: { active?: NavHref; userE
               {link.label}
             </Link>
           ))}
-
-          {userEmail && (
-            <form action="/search" method="GET" className="mt-[6px] flex items-center">
-              <input
-                type="text"
-                name="q"
-                placeholder="Search titles"
-                className="w-full rounded-[var(--cg-r-input)] border border-white/14 bg-white/6 px-[16px] py-[11px] text-[14px] text-[var(--cg-text-1)] placeholder:text-[var(--cg-text-3)] focus:border-white/30 focus:outline-none"
-              />
-            </form>
-          )}
 
           {userEmail && (
             <form action={signOutAction} className="mt-[6px] flex flex-col gap-[8px]">

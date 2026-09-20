@@ -55,7 +55,7 @@ export default async function BrowsePage({
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.72)_0%,rgba(6,11,20,.95)_32%,#070D18_56%)]" />
 
       <div className="relative mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px] pb-16">
-        <CgNavPill active="/browse" />
+        <CgNavPill />
 
         <div className="flex flex-wrap items-center gap-[14px] px-1">
           <CgMediaTypeTabs active={mediaType} basePath="/browse" preserveParams={{ platform, genre }} />
@@ -183,7 +183,7 @@ function EmptyState({ status, mediaType }: { status: CandidateStatus; mediaType:
   return (
     <div className="cg-screen min-h-screen bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
       <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px]">
-        <CgNavPill active="/browse" />
+        <CgNavPill />
         <CgMediaTypeTabs active={mediaType} basePath="/browse" />
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
           <div className="cg-pane flex w-full max-w-[520px] flex-col items-start gap-4 p-9">
