@@ -1,39 +1,47 @@
 import { NO_PREFERENCE_PLATFORM, type StreamingPlatform } from "@/lib/platforms";
 
 /**
- * Best-effort deep link straight to a title's search results on the
- * user's own platform, instead of TMDB's combined "where to watch"
- * page (which makes them pick a platform a second time). None of these
- * services publish a free/official deep-linking API for an exact title
- * page — that's what a paid feed like Watchmode would give you (see
- * README) — so this goes to that platform's own site's search results
- * for the title instead. Landing on a real, logged-in search page one
- * tap from playing is still a large improvement over TMDB even when
- * the destination isn't the title's exact page.
+ * Best-effort deep link straight to the user's own platform, instead
+ * of TMDB's combined "where to watch" page (which makes them pick a
+ * platform a second time). None of these services publish a free/
+ * official deep-linking API for an exact title page — that's what a
+ * paid feed like Watchmode would give you (see README).
  *
- * Worst case if a platform changes its search URL format: the query
- * param is silently ignored and the user lands on that platform's
- * blank search page (still a real, working page) rather than a 404 —
- * update the one entry below if that ever happens.
+ * Only Netflix and Prime Video get a query-based search deep link
+ * here — both URL patterns are long-established and widely documented
+ * (Prime Video's `i=instant-video` department code in particular has
+ * been stable for years). Every other platform links to its plain
+ * homepage instead of a guessed search URL: this environment has no
+ * outbound access to verify any of these live, and a guess that's
+ * wrong isn't a graceful "lands on a blank search page" like assumed
+ * here originally — confirmed live, a wrong Disney+ guess is a hard
+ * 404 branded page, which is worse than the old TMDB link it replaced.
+ * Promote a platform back to a search deep link only once someone has
+ * actually clicked it and confirmed the URL works.
  */
 const SEARCH_URL_BUILDERS: Partial<Record<StreamingPlatform, (title: string) => string>> = {
   Netflix: (title) => `https://www.netflix.com/search?q=${encodeURIComponent(title)}`,
-  Hulu: (title) => `https://www.hulu.com/search?q=${encodeURIComponent(title)}`,
-  "Disney+": (title) => `https://www.disneyplus.com/search?q=${encodeURIComponent(title)}`,
   "Prime Video": (title) =>
     `https://www.amazon.com/s?i=instant-video&k=${encodeURIComponent(title)}`,
-  "Apple TV+": (title) => `https://tv.apple.com/search?term=${encodeURIComponent(title)}`,
-  // Rebranded HBO Max -> Max -> back to HBO Max; hbomax.com is the
-  // current live domain as of this writing.
-  Max: (title) => `https://www.hbomax.com/search?q=${encodeURIComponent(title)}`,
-  Peacock: (title) => `https://www.peacocktv.com/search?q=${encodeURIComponent(title)}`,
-  "Paramount+": (title) => `https://www.paramountplus.com/search/?query=${encodeURIComponent(title)}`,
 };
 
-/** Returns null for a platform we have no search-URL mapping for
- * (currently just "Other" — there's no real service to deep-link to). */
-export function platformSearchUrl(platform: string, title: string): string | null {
+// Homepage fallback for platforms without a confirmed-working search
+// URL above — always a real, working page, never a guess.
+const HOMEPAGE_URLS: Partial<Record<StreamingPlatform, string>> = {
+  Hulu: "https://www.hulu.com/",
+  "Disney+": "https://www.disneyplus.com/",
+  "Apple TV+": "https://tv.apple.com/",
+  Max: "https://www.hbomax.com/",
+  Peacock: "https://www.peacocktv.com/",
+  "Paramount+": "https://www.paramountplus.com/",
+};
+
+/** A search deep link where we have a confirmed-working one, that
+ * platform's homepage otherwise, or null for a platform with neither
+ * (currently just "Other" — there's no real service to link to). */
+export function platformDeepLink(platform: string, title: string): string | null {
   if (platform === NO_PREFERENCE_PLATFORM) return null;
-  const build = SEARCH_URL_BUILDERS[platform as StreamingPlatform];
-  return build ? build(title) : null;
+  const buildSearch = SEARCH_URL_BUILDERS[platform as StreamingPlatform];
+  if (buildSearch) return buildSearch(title);
+  return HOMEPAGE_URLS[platform as StreamingPlatform] ?? null;
 }

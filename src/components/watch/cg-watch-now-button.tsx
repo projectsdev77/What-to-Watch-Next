@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { recordWatchedAction } from "@/app/actions";
-import { platformSearchUrl } from "@/lib/platform-links";
+import { platformDeepLink } from "@/lib/platform-links";
 
 const BUTTON_CLASS =
   "rounded-full bg-[var(--cg-primary)] px-[38px] py-[16px] text-[13.5px] font-bold tracking-[.08em] text-[var(--cg-on-primary)] shadow-[0_18px_38px_rgba(2,6,14,.55)] transition-transform active:scale-95";
@@ -11,12 +11,12 @@ const BUTTON_CLASS =
 /** Cinematic Glass version of WatchNowButton — same behavior (Watch Now
  * itself records a "watched" judgment, fire-and-forget), new look.
  *
- * Deep-links straight to the title's search results on the user's own
- * matching platform (see platform-links.ts) instead of TMDB's combined
- * "where to watch" page, so there's no second platform choice — one
- * tap from playing on a service they're already logged into. Falls
- * back to the generic fallbackUrl when there's no platform to deep
- * link to (unrestricted mode, or a platform we have no mapping for). */
+ * Deep-links straight to the user's own matching platform (see
+ * platform-links.ts — a search results page where we have a confirmed
+ * URL for it, that platform's homepage otherwise) instead of TMDB's
+ * combined "where to watch" page, so there's no second platform choice.
+ * Falls back to the generic fallbackUrl only when there's no platform
+ * to link to at all (unrestricted mode, or "Other"). */
 export function CgWatchNowButton({
   title,
   titleId,
@@ -38,7 +38,7 @@ export function CgWatchNowButton({
   }
 
   const deepLinks = matchingPlatforms
-    .map((platform) => ({ platform, url: platformSearchUrl(platform, title) }))
+    .map((platform) => ({ platform, url: platformDeepLink(platform, title) }))
     .filter((entry): entry is { platform: string; url: string } => entry.url !== null);
 
   if (deepLinks.length < 2) {

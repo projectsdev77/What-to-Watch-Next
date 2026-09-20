@@ -29,27 +29,35 @@ confident "watch this tonight" pick instead of an endless scroll.
 - **"Watch Now" link.** TMDB's free API doesn't give a true per-platform
   deep link (there's no "open this exact title on Hulu" URL available
   without a paid feed), so "Watch Now" instead sends the user straight
-  to a search for the title on their own matching platform's site
-  (`src/lib/platform-links.ts` — e.g. `netflix.com/search?q=<title>`),
-  landing them on that service, already logged in, one tap from
-  playing. When a title is available on two or more of the user's
-  selected platforms, "Watch Now" shows a picker where each option
-  deep-links to *that* platform specifically (not a shared destination).
-  Falls back to the old TMDB "where to watch" page
-  (`titles.justwatch_link`, or `tmdbTitleUrl` for titles with no
-  provider data) only when there's no matching platform to deep-link to
-  at all (unrestricted/"Other" mode).
+  to their own matching platform (`src/lib/platform-links.ts`) instead
+  of TMDB's combined "where to watch" page. When a title is available
+  on two or more of the user's selected platforms, "Watch Now" shows a
+  picker where each option deep-links to *that* platform specifically
+  (not a shared destination). Falls back to the old TMDB "where to
+  watch" page (`titles.justwatch_link`, or `tmdbTitleUrl` for titles
+  with no provider data) only when there's no matching platform to
+  link to at all (unrestricted/"Other" mode).
 
-  **Still a real limitation worth flagging to the client:** this lands
-  on the platform's *search results* for the title, not its exact
-  detail/play page — no streaming service publishes a free, official
-  "open this exact title" deep-linking API. True one-tap-to-exact-page
-  linking, per platform, needs a paid data source — Watchmode (linked
-  above) is the recommended upgrade path if that last step matters
-  enough to justify the cost. The search-URL patterns in
-  `platform-links.ts` are also unofficial and could break if a service
-  changes its URL scheme; each platform is one line to fix if that
-  happens.
+  Only **Netflix** and **Prime Video** get a real search deep link
+  (e.g. `netflix.com/search?q=<title>`, landing pre-searched and
+  logged in, one tap from playing) — both URL patterns are
+  long-established and well documented. Every other platform
+  (Hulu, Disney+, Apple TV+, Max, Peacock, Paramount+) links to its
+  plain homepage instead of a guessed search URL: this project has no
+  way to verify a streaming site's URL scheme live, and a wrong guess
+  isn't a graceful landing on a blank search page — confirmed live, a
+  wrong Disney+ guess was a hard 404 branded page, worse than the old
+  TMDB link it replaced. Promote a platform to a search deep link in
+  `platform-links.ts` only once someone has actually clicked it and
+  confirmed the URL works.
+
+  **Still a real limitation worth flagging to the client:** even the
+  two platforms with a real search link land on *search results*, not
+  the title's exact detail/play page — no streaming service publishes
+  a free, official "open this exact title" deep-linking API. True
+  one-tap-to-exact-page linking, per platform, needs a paid data
+  source — Watchmode (linked above) is the recommended upgrade path if
+  that last step matters enough to justify the cost.
 
 ## Movies vs TV Shows
 
