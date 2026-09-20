@@ -1,10 +1,16 @@
 import { submitPickFeedbackAction } from "@/app/actions";
 import { addToDefaultWatchlistAction, addToListAction, removeFromAllWatchlistsAction } from "@/app/watchlist/actions";
+import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 
 /** Cinematic Glass versions of WatchlistButton and FeedbackActions —
  * same server actions and behavior (including the multi-list picker),
  * new look. Only used on the redesigned Tonight's Pick screen; title
- * detail keeps the originals. */
+ * detail keeps the originals.
+ *
+ * Every submit button here uses CgSubmitButton so a press always shows
+ * something happened — an instant tactile press effect plus a dimmed/
+ * disabled state for the round-trip itself — rather than looking
+ * static until the page happens to re-render. */
 export function CgWatchlistButton({
   titleId,
   redirectTo,
@@ -24,9 +30,9 @@ export function CgWatchlistButton({
       <form action={removeFromAllWatchlistsAction}>
         <input type="hidden" name="titleId" value={titleId} />
         <input type="hidden" name="redirectTo" value={redirectTo} />
-        <button type="submit" className={cls}>
+        <CgSubmitButton className={cls} pendingLabel="REMOVING…">
           ON WATCHLIST — REMOVE
-        </button>
+        </CgSubmitButton>
       </form>
     );
   }
@@ -36,9 +42,9 @@ export function CgWatchlistButton({
       <form action={addToDefaultWatchlistAction}>
         <input type="hidden" name="titleId" value={titleId} />
         <input type="hidden" name="redirectTo" value={redirectTo} />
-        <button type="submit" className={cls}>
+        <CgSubmitButton className={cls} pendingLabel="ADDING…">
           WATCHLIST
-        </button>
+        </CgSubmitButton>
       </form>
     );
   }
@@ -55,12 +61,11 @@ export function CgWatchlistButton({
             <input type="hidden" name="titleId" value={titleId} />
             <input type="hidden" name="watchlistId" value={list.id} />
             <input type="hidden" name="redirectTo" value={redirectTo} />
-            <button
-              type="submit"
+            <CgSubmitButton
               className="w-full rounded-[var(--cg-r-input)] px-2 py-2 text-left text-[13px] font-medium text-[var(--cg-text-1)] hover:bg-white/8"
             >
               {list.name}
-            </button>
+            </CgSubmitButton>
           </form>
         ))}
       </div>
@@ -77,17 +82,17 @@ export function CgFeedbackActions({ titleId, redirectTo }: { titleId: number; re
         <input type="hidden" name="titleId" value={titleId} />
         <input type="hidden" name="status" value="disliked" />
         <input type="hidden" name="redirectTo" value={redirectTo} />
-        <button type="submit" className={cls}>
+        <CgSubmitButton className={cls} pendingLabel="…">
           Don&apos;t like it
-        </button>
+        </CgSubmitButton>
       </form>
       <form action={submitPickFeedbackAction}>
         <input type="hidden" name="titleId" value={titleId} />
         <input type="hidden" name="status" value="skipped" />
         <input type="hidden" name="redirectTo" value={redirectTo} />
-        <button type="submit" className={cls}>
+        <CgSubmitButton className={cls} pendingLabel="…">
           Another time
-        </button>
+        </CgSubmitButton>
       </form>
     </div>
   );
