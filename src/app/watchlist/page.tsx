@@ -79,7 +79,7 @@ export default async function WatchlistPage() {
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.75)_0%,rgba(6,11,20,.96)_30%,#070D18_52%)]" />
 
       <div className="relative mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px] pb-16">
-        <CgNavPill active="/watchlist" />
+        <CgNavPill />
 
         <div className="flex flex-wrap items-end gap-4 px-2 pt-1">
           <span className="font-heading text-[38px] font-bold tracking-[-.035em]">Watchlists</span>

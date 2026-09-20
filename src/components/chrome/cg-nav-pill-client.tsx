@@ -6,7 +6,6 @@ import { signOutAction } from "@/app/login/actions";
 
 const NAV_LINKS = [
   { href: "/", label: "Tonight's pick" },
-  { href: "/watchlist", label: "Watchlist" },
   { href: "/settings", label: "Settings" },
 ] as const;
 
