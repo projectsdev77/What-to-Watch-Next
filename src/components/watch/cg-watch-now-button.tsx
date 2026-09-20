@@ -3,20 +3,28 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { recordWatchedAction } from "@/app/actions";
+import { platformSearchUrl } from "@/lib/platform-links";
 
 const BUTTON_CLASS =
-  "rounded-full bg-[var(--cg-primary)] px-[38px] py-[16px] text-[13.5px] font-bold tracking-[.08em] text-[var(--cg-on-primary)] shadow-[0_18px_38px_rgba(2,6,14,.55)]";
+  "rounded-full bg-[var(--cg-primary)] px-[38px] py-[16px] text-[13.5px] font-bold tracking-[.08em] text-[var(--cg-on-primary)] shadow-[0_18px_38px_rgba(2,6,14,.55)] transition-transform active:scale-95";
 
 /** Cinematic Glass version of WatchNowButton — same behavior (Watch Now
- * itself records a "watched" judgment, fire-and-forget), new look. Only
- * used on the redesigned Tonight's Pick screen; title detail keeps the
- * original WatchNowButton. */
+ * itself records a "watched" judgment, fire-and-forget), new look.
+ *
+ * Deep-links straight to the title's search results on the user's own
+ * matching platform (see platform-links.ts) instead of TMDB's combined
+ * "where to watch" page, so there's no second platform choice — one
+ * tap from playing on a service they're already logged into. Falls
+ * back to the generic fallbackUrl when there's no platform to deep
+ * link to (unrestricted mode, or a platform we have no mapping for). */
 export function CgWatchNowButton({
+  title,
   titleId,
   redirectTo,
   matchingPlatforms,
   fallbackUrl,
 }: {
+  title: string;
   titleId: number;
   redirectTo: string;
   matchingPlatforms: string[];
@@ -29,9 +37,14 @@ export function CgWatchNowButton({
     recordWatchedAction(titleId, redirectTo).then(() => router.refresh());
   }
 
-  if (matchingPlatforms.length < 2) {
+  const deepLinks = matchingPlatforms
+    .map((platform) => ({ platform, url: platformSearchUrl(platform, title) }))
+    .filter((entry): entry is { platform: string; url: string } => entry.url !== null);
+
+  if (deepLinks.length < 2) {
+    const href = deepLinks[0]?.url ?? fallbackUrl;
     return (
-      <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" onClick={recordWatch} className={BUTTON_CLASS}>
+      <a href={href} target="_blank" rel="noopener noreferrer" onClick={recordWatch} className={BUTTON_CLASS}>
         ▶ WATCH NOW
       </a>
     );
@@ -61,17 +74,17 @@ export function CgWatchNowButton({
             <p className="px-3 pt-1 pb-2 text-[11px] font-semibold tracking-[.14em] text-[var(--cg-text-3)]">
               CHOOSE A PLATFORM
             </p>
-            {matchingPlatforms.map((platform) => (
+            {deepLinks.map(({ platform, url }) => (
               <a
                 key={platform}
-                href={fallbackUrl}
+                href={url}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => {
                   setOpen(false);
                   recordWatch();
                 }}
-                className="block rounded-[var(--cg-r-input)] px-3 py-[11px] text-[14px] text-[var(--cg-text-1)] hover:bg-white/8"
+                className="block rounded-[var(--cg-r-input)] px-3 py-[11px] text-[14px] text-[var(--cg-text-1)] transition-colors hover:bg-white/8 active:bg-white/14"
               >
                 {platform}
               </a>

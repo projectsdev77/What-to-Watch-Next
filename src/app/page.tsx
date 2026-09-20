@@ -91,6 +91,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             <p className="max-w-[44ch] text-[16px] leading-[1.6] text-[var(--cg-text-2)]">{pick.why}</p>
             <div className="flex flex-wrap gap-[11px] pt-0.5">
               <CgWatchNowButton
+                title={pick.title}
                 titleId={pick.id}
                 redirectTo={redirectTo}
                 matchingPlatforms={matchingPlatforms}

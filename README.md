@@ -28,21 +28,28 @@ confident "watch this tonight" pick instead of an endless scroll.
 
 - **"Watch Now" link.** TMDB's free API doesn't give a true per-platform
   deep link (there's no "open this exact title on Hulu" URL available
-  without a paid feed) — every destination is the same TMDB "where to
-  watch" page (`titles.justwatch_link`, captured during seeding —
-  TMDB's own hosted page for the title, populated with provider logos,
-  not actually a JustWatch URL despite the field name; falls back to
-  `tmdbTitleUrl` for titles seeded before this existed or with no
-  provider data). When a title is available on two or more of the
-  user's own selected platforms, "Watch Now" still asks which one
-  first — mainly a confirmation step, since every option opens the same
-  page, which itself lists each real provider as a clickable option.
+  without a paid feed), so "Watch Now" instead sends the user straight
+  to a search for the title on their own matching platform's site
+  (`src/lib/platform-links.ts` — e.g. `netflix.com/search?q=<title>`),
+  landing them on that service, already logged in, one tap from
+  playing. When a title is available on two or more of the user's
+  selected platforms, "Watch Now" shows a picker where each option
+  deep-links to *that* platform specifically (not a shared destination).
+  Falls back to the old TMDB "where to watch" page
+  (`titles.justwatch_link`, or `tmdbTitleUrl` for titles with no
+  provider data) only when there's no matching platform to deep-link to
+  at all (unrestricted/"Other" mode).
 
-  **This is a real limitation worth flagging to the client:** true
-  one-click "open this exact title on the platform I picked" deep
+  **Still a real limitation worth flagging to the client:** this lands
+  on the platform's *search results* for the title, not its exact
+  detail/play page — no streaming service publishes a free, official
+  "open this exact title" deep-linking API. True one-tap-to-exact-page
   linking, per platform, needs a paid data source — Watchmode (linked
-  above) is the recommended upgrade path if that experience matters
-  enough to justify the cost.
+  above) is the recommended upgrade path if that last step matters
+  enough to justify the cost. The search-URL patterns in
+  `platform-links.ts` are also unofficial and could break if a service
+  changes its URL scheme; each platform is one line to fix if that
+  happens.
 
 ## Movies vs TV Shows
 
