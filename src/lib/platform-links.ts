@@ -7,22 +7,33 @@ import { NO_PREFERENCE_PLATFORM, type StreamingPlatform } from "@/lib/platforms"
  * official deep-linking API for an exact title page — that's what a
  * paid feed like Watchmode would give you (see README).
  *
- * Only Netflix and Prime Video get a query-based search deep link
- * here — both URL patterns are long-established and widely documented
- * (Prime Video's `i=instant-video` department code in particular has
- * been stable for years). Every other platform links to its plain
- * homepage instead of a guessed search URL: this environment has no
- * outbound access to verify any of these live, and a guess that's
- * wrong isn't a graceful "lands on a blank search page" like assumed
- * here originally — confirmed live, a wrong Disney+ guess is a hard
- * 404 branded page, which is worse than the old TMDB link it replaced.
- * Promote a platform back to a search deep link only once someone has
- * actually clicked it and confirmed the URL works.
+ * Only platforms with a *confirmed* working search URL get a
+ * query-based deep link here — this environment has no outbound
+ * access to click-test any of these, so "confirmed" means real
+ * evidence (a search engine actually indexing that platform's live
+ * search-results page with the query pre-filled), not just a
+ * plausible guess. A wrong guess isn't a graceful "lands on a blank
+ * search page" — confirmed live, a wrong Disney+ guess was a hard 404
+ * branded page, worse than the old TMDB link it replaced. Everything
+ * else links to its plain homepage until it's actually confirmed:
+ *
+ * - Netflix, Prime Video: long-established, widely documented patterns
+ *   (Prime Video's `i=instant-video` department code has been stable
+ *   for years).
+ * - Paramount+: confirmed — a live paramountplus.com/search/?query=
+ *   results page for a specific title turned up indexed with that
+ *   title in its own page title, so `?query=` genuinely pre-fills it.
+ * - Hulu, Disney+, Apple TV+, Max, Peacock: NOT yet confirmed. Their
+ *   search pages exist, but no evidence surfaced for the query
+ *   parameter each one actually reads. Promote one to
+ *   SEARCH_URL_BUILDERS as soon as someone confirms the working URL
+ *   by hand (search the title on the site, copy the resulting URL).
  */
 const SEARCH_URL_BUILDERS: Partial<Record<StreamingPlatform, (title: string) => string>> = {
   Netflix: (title) => `https://www.netflix.com/search?q=${encodeURIComponent(title)}`,
   "Prime Video": (title) =>
     `https://www.amazon.com/s?i=instant-video&k=${encodeURIComponent(title)}`,
+  "Paramount+": (title) => `https://www.paramountplus.com/search/?query=${encodeURIComponent(title)}`,
 };
 
 // Homepage fallback for platforms without a confirmed-working search
@@ -33,7 +44,6 @@ const HOMEPAGE_URLS: Partial<Record<StreamingPlatform, string>> = {
   "Apple TV+": "https://tv.apple.com/",
   Max: "https://www.hbomax.com/",
   Peacock: "https://www.peacocktv.com/",
-  "Paramount+": "https://www.paramountplus.com/",
 };
 
 /** A search deep link where we have a confirmed-working one, that

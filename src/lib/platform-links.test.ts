@@ -28,6 +28,12 @@ describe("platformDeepLink", () => {
     );
   });
 
+  it("gives Paramount+ a real search deep link (confirmed working)", () => {
+    expect(platformDeepLink("Paramount+", "Inception")).toBe(
+      "https://www.paramountplus.com/search/?query=Inception"
+    );
+  });
+
   it("falls back to the plain homepage for platforms without a confirmed search URL", () => {
     // Guessed search URLs risk landing on a hard 404 (confirmed live for
     // Disney+) rather than a graceful blank search page, so anything
@@ -37,7 +43,6 @@ describe("platformDeepLink", () => {
     expect(platformDeepLink("Apple TV+", "Inception")).toBe("https://tv.apple.com/");
     expect(platformDeepLink("Max", "Inception")).toBe("https://www.hbomax.com/");
     expect(platformDeepLink("Peacock", "Inception")).toBe("https://www.peacocktv.com/");
-    expect(platformDeepLink("Paramount+", "Inception")).toBe("https://www.paramountplus.com/");
   });
 
   it("returns null for the 'no preference' placeholder platform", () => {
