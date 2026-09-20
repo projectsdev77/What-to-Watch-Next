@@ -289,19 +289,13 @@ function toRecommended(candidate: ScoredCandidate, pool: CandidatePool, min: num
 
 export type TonightsPickResult =
   | { status: CandidateStatus }
-  | { status: "ok"; pick: RecommendedTitle; discover: RecommendedTitle[]; unrestricted: boolean };
+  | { status: "ok"; pick: RecommendedTitle; unrestricted: boolean };
 
-const DISCOVER_SIZE = 6;
 // How many of the top-ranked candidates Gemini gets to choose among —
 // small on purpose: keeps the prompt short and keeps every option a
 // genuinely good match on its own, so the AI is picking the best of
 // several good fits, not rescuing a bad one.
 const AI_SHORTLIST_SIZE = 8;
-
-function sharedGenreCount(a: number[], b: number[]): number {
-  const bSet = new Set(b);
-  return a.filter((id) => bSet.has(id)).length;
-}
 
 export async function getTonightsPick(userId: string, mediaType?: MediaType): Promise<TonightsPickResult> {
   const supabase = await createClient();
@@ -344,25 +338,12 @@ export async function getTonightsPick(userId: string, mediaType?: MediaType): Pr
     }
   }
 
-  const rest = pool.scored.filter((c) => c.row.id !== pick.row.id);
-
-  // "Also consider" should read as "because you're about to watch this",
-  // not just "your next-best overall matches" — rank by how much each
-  // candidate's genres overlap with the actual pick, falling back to
-  // overall taste score as a tiebreaker.
-  const related = [...rest].sort((a, b) => {
-    const overlapA = sharedGenreCount(a.row.genre_ids, pick.row.genre_ids);
-    const overlapB = sharedGenreCount(b.row.genre_ids, pick.row.genre_ids);
-    return overlapB - overlapA || b.score - a.score;
-  });
-
   const recommendedPick = toRecommended(pick, pool, min, max);
   if (aiWhy) recommendedPick.why = aiWhy;
 
   return {
     status: "ok",
     pick: recommendedPick,
-    discover: related.slice(0, DISCOVER_SIZE).map((c) => toRecommended(c, pool, min, max)),
     unrestricted: pool.unrestricted,
   };
 }

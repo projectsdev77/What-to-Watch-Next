@@ -7,7 +7,6 @@ import { getTonightsPick, type CandidateStatus } from "@/lib/recommendations";
 import { parseMediaType, TMDB_BACKDROP_BASE_URL, TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
-import { CgPosterCard } from "@/components/watch/cg-poster-card";
 import { CgWatchNowButton } from "@/components/watch/cg-watch-now-button";
 import { CgWatchlistButton, CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
 
@@ -109,22 +108,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             </div>
           </div>
         </div>
-
-        {result.discover.length > 0 && (
-          <div className="cg-pane flex flex-col gap-4 p-6">
-            <div className="flex items-baseline gap-[14px]">
-              <span className="font-heading text-[19px] font-semibold tracking-[-.02em]">Also consider</span>
-              <Link href={`/browse${mediaType === "tv" ? "?type=tv" : ""}`} className="ml-auto text-[13px] text-[var(--cg-accent)]">
-                Browse all
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
-              {result.discover.map((title) => (
-                <CgPosterCard key={title.id} title={title} />
-              ))}
-            </div>
-          </div>
-        )}
 
         <span className="px-1 pt-1 text-[12px] text-[var(--cg-text-legal)]">
           Streaming availability data provided by JustWatch. © 2026 What To Watch Next.

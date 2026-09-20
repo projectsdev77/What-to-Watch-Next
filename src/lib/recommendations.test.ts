@@ -187,30 +187,6 @@ describe("getTonightsPick — scoring", () => {
     expect(result.pick.why).toMatch(/popular/i);
   });
 
-  it("ranks a lower-scored genre match above a higher-scored non-match in 'also consider'", async () => {
-    // Cold start (no genre weights) so score == vote_average — isolates
-    // the genre-overlap reordering from the weighted-score math.
-    const titles = [
-      title(1, [28], 9.0), // pick: highest raw score, genre 28
-      title(2, [18], 8.0), // higher raw score than #3, but no genre overlap with the pick
-      title(3, [28], 5.0), // lower raw score, but shares genre 28 with the pick
-      title(4, [35], 1.0), // lowest, no overlap
-    ];
-    mockSupabaseFor({
-      userPlatforms: ["Netflix"],
-      titlesTotalCount: titles.length,
-      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
-      candidateTitles: titles,
-      genreWeights: {},
-    });
-
-    const result = await getTonightsPick("u1");
-    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
-    expect(result.pick.id).toBe(1);
-    // #3 (genre overlap) must outrank #2 (higher raw score, no overlap).
-    expect(result.discover.map((t) => t.id)).toEqual([3, 2, 4]);
-  });
-
   it("ranks a title matching the user's weighted genre preference first", async () => {
     const titles = [
       title(1, [28], 7.0), // Action
