@@ -12,6 +12,19 @@ const GENRE_WEIGHT_DELTA: Partial<Record<FeedbackStatus, number>> = {
   watched: 1,
 };
 
+// Without a ceiling, a genre someone rates a lot of just keeps growing
+// forever and permanently dominates every other genre in scoring — a
+// user who's liked 200 action titles ends up with action:200, dwarfing
+// everything else, and the engine can never recover into recommending
+// anything different. Clamping keeps relative preference intact (a
+// strongly-preferred genre still clearly outranks a mildly-preferred
+// one) without letting any single genre become unbeatable forever.
+export const MAX_GENRE_WEIGHT = 10;
+
+export function clampGenreWeight(weight: number): number {
+  return Math.max(-MAX_GENRE_WEIGHT, Math.min(MAX_GENRE_WEIGHT, weight));
+}
+
 /**
  * Records a user's reaction to a title and, for liked/disliked/watched,
  * nudges their taste profile's genre weights incrementally. Only for use
@@ -50,7 +63,7 @@ export async function recordTitleFeedback(userId: string, titleId: number, statu
 
   const weights: Record<string, number> = { ...(profile?.genre_weights as Record<string, number>) };
   for (const genreId of title.genre_ids as number[]) {
-    weights[genreId] = (weights[genreId] ?? 0) + delta;
+    weights[genreId] = clampGenreWeight((weights[genreId] ?? 0) + delta);
   }
 
   const { error: profileError } = await supabase

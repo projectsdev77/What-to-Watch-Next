@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { clampGenreWeight } from "@/lib/taste-profile";
 import { RATING_GOAL } from "./constants";
 
 // Only real judgments go to the server. "Didn't Watch" has zero effect
@@ -32,12 +33,14 @@ async function saveTasteProfile(supabase: SupabaseClient, userId: string) {
 
   // Simple v1 taste signal: +1 per genre on a liked title, -0.5 on a
   // disliked one. Phase 3 will use this (plus cast/keyword weights)
-  // to score recommendations.
+  // to score recommendations. Clamped (see clampGenreWeight) so a genre
+  // rated heavily during the quiz can't start out already dominating
+  // every other genre.
   const genreWeights: Record<string, number> = {};
   for (const row of rows) {
     const delta = row.status === "liked" ? 1 : -0.5;
     for (const genreId of row.titles?.genre_ids ?? []) {
-      genreWeights[genreId] = (genreWeights[genreId] ?? 0) + delta;
+      genreWeights[genreId] = clampGenreWeight((genreWeights[genreId] ?? 0) + delta);
     }
   }
 
