@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { genreName } from "@/lib/genres";
 import { DEFAULT_REGION, NO_PREFERENCE_PLATFORM } from "@/lib/platforms";
@@ -86,6 +87,16 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
 
       <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col justify-center gap-6 p-[22px] pb-16">
         <CgNavPill />
+
+        {userRealPlatforms.length === 0 && (
+          <div className="cg-pane px-4 py-3 text-[13px] text-[var(--cg-text-2)]">
+            You haven&apos;t picked a streaming service in{" "}
+            <Link href="/settings" className="font-semibold text-[var(--cg-accent)] underline">
+              Settings
+            </Link>
+            , so this might not be somewhere you can actually watch it.
+          </div>
+        )}
 
         <div className="cg-pane flex flex-col gap-[18px] p-6 sm:flex-row sm:gap-[26px]">
           <div className="relative mx-auto aspect-[2/3] w-[190px] shrink-0 overflow-hidden rounded-[var(--cg-r-poster)] shadow-[0_28px_60px_rgba(2,6,14,.75)] sm:mx-0 sm:w-[230px]">

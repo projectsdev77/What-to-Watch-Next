@@ -57,6 +57,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
         <CgNavPill active="/" />
         <CgMediaTypeTabs active={mediaType} basePath="/" />
 
+        {result.unrestricted && (
+          <div className="cg-pane px-4 py-3 text-[13px] text-[var(--cg-text-2)]">
+            You haven&apos;t picked a streaming service in{" "}
+            <Link href="/settings" className="font-semibold text-[var(--cg-accent)] underline">
+              Settings
+            </Link>
+            , so this pick could be from any platform — it might not be one you can actually watch on.
+          </div>
+        )}
+
         <div className="flex flex-col gap-[22px] px-2 py-6 sm:flex-row sm:items-end sm:gap-[34px] sm:py-9">
           <div className="relative aspect-[2/3] w-[190px] shrink-0 overflow-hidden rounded-[var(--cg-r-poster)] shadow-[0_28px_60px_rgba(2,6,14,.75)] sm:w-[210px]">
             {pick.posterPath && (
