@@ -22,12 +22,33 @@ function shuffleKey(seed: string): number {
   return hash;
 }
 
-export default async function QuizOnboardingPage() {
+// Wraps around once `start` runs past the end of `items`, instead of
+// just truncating — the ?batch= param (see below) can grow arbitrarily
+// as someone keeps dismissing whole batches via "Haven't watched it",
+// so this is what keeps the quiz from ever dead-ending on a fixed pool.
+// Never repeats a title within the *same* returned batch, even if
+// `count` exceeds the pool size.
+function circularSlice<T>(items: T[], start: number, count: number): T[] {
+  if (items.length === 0) return [];
+  const result: T[] = [];
+  for (let i = 0; i < count && i < items.length; i++) {
+    result.push(items[(start + i) % items.length]);
+  }
+  return result;
+}
+
+export default async function QuizOnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ batch?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const batchIndex = Math.max(0, Math.floor(Number((await searchParams).batch)) || 0);
 
   const { count: platformCount } = await supabase
     .from("user_platforms")
@@ -52,11 +73,13 @@ export default async function QuizOnboardingPage() {
     .limit(CANDIDATE_POOL_SIZE);
 
   const unrated = (candidates ?? []).filter((t) => !ratedIds.has(t.id));
-  const batch = [...unrated]
-    .sort((a, b) => shuffleKey(`${user.id}-${a.id}`) - shuffleKey(`${user.id}-${b.id}`))
-    .slice(0, QUIZ_BATCH_SIZE);
+  const sortedUnrated = [...unrated].sort(
+    (a, b) => shuffleKey(`${user.id}-${a.id}`) - shuffleKey(`${user.id}-${b.id}`)
+  );
+  const batch = circularSlice(sortedUnrated, batchIndex * QUIZ_BATCH_SIZE, QUIZ_BATCH_SIZE);
 
   const progressPercent = Math.min(100, Math.round((ratedCount / RATING_GOAL) * 100));
+  const goalReached = ratedCount >= RATING_GOAL;
 
   return (
     <div className="cg-screen relative min-h-screen bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
@@ -99,17 +122,33 @@ export default async function QuizOnboardingPage() {
             You&apos;ve rated everything we have cached so far — hit the button below to continue.
           </p>
         ) : (
-          <QuizBatch batch={batch} />
+          <QuizBatch batch={batch} batchIndex={batchIndex} />
         )}
 
-        <form action={finishQuizAction}>
-          <button
-            type="submit"
-            className="rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 px-7 py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-text-2)] transition-colors hover:border-white/35 hover:text-[var(--cg-text-1)]"
-          >
-            {ratedCount > 0 ? "FINISH WITH WHAT I'VE RATED" : "SKIP — I DON'T RECOGNIZE THESE"}
-          </button>
-        </form>
+        <div className="flex flex-wrap items-center gap-[18px]">
+          <form action={finishQuizAction}>
+            <button
+              type="submit"
+              disabled={!goalReached}
+              className="rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 px-7 py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-text-2)] transition-colors hover:border-white/35 hover:text-[var(--cg-text-1)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/18 disabled:hover:text-[var(--cg-text-2)]"
+            >
+              {goalReached
+                ? "CONTINUE TO TONIGHT'S PICK"
+                : `RATE ${RATING_GOAL - ratedCount} MORE TO CONTINUE`}
+            </button>
+          </form>
+
+          {!goalReached && (
+            <form action={finishQuizAction}>
+              <button
+                type="submit"
+                className="text-[12.5px] font-medium text-[var(--cg-text-3)] underline decoration-white/30 underline-offset-2 transition-colors hover:text-[var(--cg-text-2)] hover:decoration-current"
+              >
+                Skip — I don&apos;t recognize these
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

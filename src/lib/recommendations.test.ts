@@ -168,6 +168,46 @@ describe("getTonightsPick / getDiscoverList — status short-circuits", () => {
     });
     expect(await getTonightsPick("u1")).toEqual({ status: "all-rated" });
   });
+
+  it("falls back to resurfacing a recently-skipped title rather than dead-ending", async () => {
+    // Every available title was skipped ("Another time") within the
+    // cooldown window — honoring that strictly would empty the pool.
+    // Should fall back to showing one of them rather than reporting
+    // "all-rated" when nothing was actually permanently judged.
+    const titles = [title(1, [28], 7.0), title(2, [18], 6.0)];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      feedback: titles.map((t) => ({
+        title_id: t.id,
+        status: "skipped" as const,
+        updated_at: new Date().toISOString(),
+      })),
+    });
+
+    const result = await getTonightsPick("u1");
+    expect(result.status).toBe("ok");
+  });
+
+  it("still permanently excludes disliked titles even when the skip fallback kicks in", async () => {
+    const titles = [title(1, [28], 7.0), title(2, [18], 6.0)];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      feedback: [
+        { title_id: 1, status: "disliked", updated_at: new Date().toISOString() },
+        { title_id: 2, status: "skipped", updated_at: new Date().toISOString() },
+      ],
+    });
+
+    const result = await getTonightsPick("u1");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.pick.id).toBe(2); // the disliked title (1) must never resurface
+  });
 });
 
 describe("getTonightsPick — scoring", () => {

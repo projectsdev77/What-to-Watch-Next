@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { clampGenreWeight } from "@/lib/taste-profile";
-import { RATING_GOAL } from "./constants";
 
 // Only real judgments go to the server. "Didn't Watch" has zero effect
 // by design (stays eligible, no taste-profile change) — see
@@ -76,27 +75,20 @@ export async function rateTitleAction(formData: FormData) {
   );
   if (error) throw new Error(`Failed to record quiz rating: ${error.message}`);
 
-  // Once there's enough signal, skip straight to recommendations instead
-  // of making the user keep rating or hunt for a "continue" button —
-  // this is the primary way the quiz ends now.
-  const { count } = await supabase
-    .from("user_title_feedback")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .in("status", ["liked", "disliked"]);
-
-  if ((count ?? 0) >= RATING_GOAL) {
-    await saveTasteProfile(supabase, user.id);
-    redirect("/");
-  }
-
+  // No auto-redirect once RATING_GOAL is reached — hitting the goal
+  // unlocks the "continue" button on the page (see quiz/page.tsx), it
+  // doesn't force the user off the quiz. They get an actual choice:
+  // keep rating for a richer profile, or continue via that button.
   revalidatePath("/onboarding/quiz");
 }
 
-/** Manual escape hatch for someone who doesn't recognize enough titles
- * to reach RATING_GOAL — finishes onboarding early with whatever real
- * ratings exist so far (possibly zero, which recommendations.ts already
- * handles as a cold start ranked by popularity). */
+/** The only way to leave the quiz: continues with whatever's been rated
+ * so far. The page only lets this be clicked once RATING_GOAL real
+ * ratings exist — except for the separate "don't recognize these"
+ * escape hatch below, which stays available immediately (possibly
+ * zero ratings, which recommendations.ts already handles as a cold
+ * start ranked by popularity), so nobody who genuinely can't reach the
+ * goal is stuck with no way out. */
 export async function finishQuizAction() {
   const supabase = await createClient();
   const {

@@ -120,16 +120,19 @@ async function getCandidatePool(
   // the user has said they *want* to watch it, so it stays a candidate
   // and gets a scoring bonus instead — see toRecommended below. A skip
   // ("Not today") only excludes for SKIP_COOLDOWN_HOURS — it should come
-  // back tomorrow, not vanish forever.
+  // back tomorrow, not vanish forever. Kept separate from the permanent
+  // exclusions below so a nearly-exhausted pool can fall back to
+  // ignoring the cooldown instead of dead-ending (see candidateIds).
   const skipCutoff = Date.now() - SKIP_COOLDOWN_HOURS * 60 * 60 * 1000;
-  const excludedIds = new Set<number>();
+  const permanentExcludedIds = new Set<number>();
+  const recentSkipIds = new Set<number>();
   for (const row of feedbackRows ?? []) {
     const titleId = row.title_id as number;
     if (row.status === "skipped") {
       const skippedAt = new Date(row.updated_at as string).getTime();
-      if (skippedAt > skipCutoff) excludedIds.add(titleId);
+      if (skippedAt > skipCutoff) recentSkipIds.add(titleId);
     } else {
-      excludedIds.add(titleId);
+      permanentExcludedIds.add(titleId);
     }
   }
   const watchlistedIds = new Set((watchlistRows ?? []).map((row) => row.title_id as number));
@@ -159,7 +162,17 @@ async function getCandidatePool(
   // Postgres happened to return), not the best matches. The cap below is
   // applied after scoring/sorting instead, so it only ever discards the
   // worst-scoring excess.
-  const candidateIds = [...platformsByTitleId.keys()].filter((id) => !excludedIds.has(id));
+  const allAvailableIds = [...platformsByTitleId.keys()];
+  let candidateIds = allAvailableIds.filter(
+    (id) => !permanentExcludedIds.has(id) && !recentSkipIds.has(id)
+  );
+  if (candidateIds.length === 0) {
+    // Honoring the skip cooldown would leave nothing to recommend —
+    // rather than dead-end with "you've rated everything" when that
+    // isn't even true, fall back to resurfacing a recently-skipped
+    // title instead. Still respects permanent exclusions.
+    candidateIds = allAvailableIds.filter((id) => !permanentExcludedIds.has(id));
+  }
   if (candidateIds.length === 0) return { status: "all-rated" };
 
   let titlesQuery = supabase

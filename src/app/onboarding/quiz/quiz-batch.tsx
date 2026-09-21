@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import { rateTitleAction } from "./actions";
 
@@ -25,16 +26,23 @@ interface QuizTitle {
  * what makes the fade-in below play just for the arrival, not the whole
  * grid re-rendering.
  */
-export function QuizBatch({ batch }: { batch: QuizTitle[] }) {
+export function QuizBatch({ batch, batchIndex }: { batch: QuizTitle[]; batchIndex: number }) {
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
   const visible = batch.filter((t) => !dismissedIds.has(t.id));
 
   if (visible.length === 0) {
     return (
-      <p className="mb-8 text-[14.5px] text-[var(--cg-text-2)]">
-        That&apos;s everything in this batch — hit the button below, or rate a few more once more
-        titles are available.
-      </p>
+      <div className="mb-8 flex flex-col gap-3">
+        <p className="text-[14.5px] text-[var(--cg-text-2)]">
+          That&apos;s everything in this batch.
+        </p>
+        <Link
+          href={`/onboarding/quiz?batch=${batchIndex + 1}`}
+          className="self-start rounded-[var(--cg-r-input)] bg-[var(--cg-primary)] px-6 py-[12px] text-[12.5px] font-bold tracking-[.08em] text-[var(--cg-on-primary)] transition-opacity hover:opacity-90"
+        >
+          SHOW ME DIFFERENT TITLES
+        </Link>
+      </div>
     );
   }
 
