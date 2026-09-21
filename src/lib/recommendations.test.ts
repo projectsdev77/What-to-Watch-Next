@@ -187,6 +187,36 @@ describe("getTonightsPick — scoring", () => {
     expect(result.pick.why).toMatch(/popular/i);
   });
 
+  it("doesn't silently drop the best match when the catalog is larger than MAX_CANDIDATES", async () => {
+    // Regression test: candidateIds used to get sliced to MAX_CANDIDATES
+    // (1000) BEFORE scoring, on whatever order the availability rows
+    // happened to come back in — so a genuinely best-scoring title could
+    // get cut before it was ever considered, just for sorting last in
+    // that raw list. Here the best title (by far, once genre-weighted)
+    // is placed LAST among 1000+ candidates; it must still win.
+    // Fillers carry a genre with no taste signal (score 0); the best
+    // match carries the one genre the user has positive signal for
+    // (score 1) — a real, unambiguous highest score, not a tiebreak.
+    const filler = Array.from({ length: 1200 }, (_, i) => title(i + 1, [2], 5.0));
+    const best = title(9999, [1], 5.0, "Best Match");
+    const allTitles = [...filler, best];
+
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: allTitles.length,
+      // `best` is intentionally last in the availability rows, so under
+      // the old pre-scoring slice it would've been candidate #1201 and
+      // dropped before scoring ever ran.
+      availability: allTitles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: allTitles,
+      genreWeights: { "1": 1 },
+    });
+
+    const result = await getTonightsPick("u1");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.pick.title).toBe("Best Match");
+  });
+
   it("ranks a title matching the user's weighted genre preference first", async () => {
     const titles = [
       title(1, [28], 7.0), // Action

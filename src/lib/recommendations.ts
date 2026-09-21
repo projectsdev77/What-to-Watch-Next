@@ -65,10 +65,14 @@ interface CandidatePool {
 // bonus on top of its genre-match score, big enough to outrank most
 // organic matches without being an unconditional override.
 const WATCHLIST_BONUS = 3;
-// Defensive cap for the .in() query, not a "how many titles should Browse
-// show" limit — Browse asks for up to 200 (see browse/page.tsx) and the
-// catalog keeps growing via the refresh-catalog cron job, so this just
-// needs to comfortably exceed that, not artificially constrain it.
+// Caps how many *scored* candidates the pool returns, not a "how many
+// titles should Browse show" limit — Browse asks for up to 200 (see
+// browse/page.tsx). Applied after scoring/sorting (see below), so this
+// only ever trims the worst-scoring excess once the catalog outgrows it,
+// never an arbitrary slice. The catalog keeps growing via the
+// refresh-catalog cron job, so this may need raising eventually; if the
+// unfiltered `.in()` fetch below ever becomes a real query-size concern
+// at that scale, that's a separate pagination problem to solve then.
 const MAX_CANDIDATES = 1000;
 
 // "Not today" (status: skipped) means exactly that — not forever. Liked,
@@ -150,7 +154,12 @@ async function getCandidatePool(
   }
   if (platformsByTitleId.size === 0) return { status: "nothing-available" };
 
-  const candidateIds = [...platformsByTitleId.keys()].filter((id) => !excludedIds.has(id)).slice(0, MAX_CANDIDATES);
+  // Deliberately NOT capped here — capping the raw id list before scoring
+  // would silently drop an arbitrary slice of the catalog (whatever order
+  // Postgres happened to return), not the best matches. The cap below is
+  // applied after scoring/sorting instead, so it only ever discards the
+  // worst-scoring excess.
+  const candidateIds = [...platformsByTitleId.keys()].filter((id) => !excludedIds.has(id));
   if (candidateIds.length === 0) return { status: "all-rated" };
 
   let titlesQuery = supabase
@@ -213,7 +222,9 @@ async function getCandidatePool(
   scored.sort((a, b) => b.score - a.score || (b.row.vote_average ?? 0) - (a.row.vote_average ?? 0));
 
   return {
-    scored,
+    // Cap applied post-sort — keeps the best MAX_CANDIDATES, not an
+    // arbitrary slice of them. See the comment on candidateIds above.
+    scored: scored.slice(0, MAX_CANDIDATES),
     platformsByTitleId,
     likedTitlesByGenre,
     hasSignal,
