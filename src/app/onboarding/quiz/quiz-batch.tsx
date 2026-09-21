@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import { rateTitleAction } from "./actions";
+import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 
 interface QuizTitle {
   id: number;
@@ -72,22 +73,28 @@ export function QuizBatch({ batch, batchIndex }: { batch: QuizTitle[]; batchInde
               <form action={rateTitleAction} className="flex-1">
                 <input type="hidden" name="titleId" value={title.id} />
                 <input type="hidden" name="status" value="liked" />
-                <button className="flex w-full items-center justify-center gap-[5px] rounded-[var(--cg-r-input)] bg-[var(--cg-primary)] py-[10px] text-[11.5px] font-bold tracking-[.05em] text-[var(--cg-on-primary)] transition-opacity hover:opacity-90">
+                <CgSubmitButton
+                  className="flex w-full items-center justify-center gap-[5px] rounded-[var(--cg-r-input)] bg-[var(--cg-primary)] py-[10px] text-[11.5px] font-bold tracking-[.05em] text-[var(--cg-on-primary)] hover:opacity-90"
+                  pendingLabel="…"
+                >
                   <span aria-hidden>✓</span> LIKED
-                </button>
+                </CgSubmitButton>
               </form>
               <form action={rateTitleAction} className="flex-1">
                 <input type="hidden" name="titleId" value={title.id} />
                 <input type="hidden" name="status" value="disliked" />
-                <button className="flex w-full items-center justify-center gap-[5px] rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 py-[10px] text-[11.5px] font-bold tracking-[.05em] text-[var(--cg-text-2)] transition-colors hover:border-white/35 hover:text-[var(--cg-text-1)]">
+                <CgSubmitButton
+                  className="flex w-full items-center justify-center gap-[5px] rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 py-[10px] text-[11.5px] font-bold tracking-[.05em] text-[var(--cg-text-2)] hover:border-white/35 hover:text-[var(--cg-text-1)]"
+                  pendingLabel="…"
+                >
                   <span aria-hidden>✕</span> DISLIKED
-                </button>
+                </CgSubmitButton>
               </form>
             </div>
             <button
               type="button"
               onClick={() => setDismissedIds((prev) => new Set(prev).add(title.id))}
-              className="py-[3px] text-center text-[11.5px] font-medium text-[var(--cg-text-3)] underline decoration-white/30 underline-offset-2 transition-colors hover:text-[var(--cg-text-2)] hover:decoration-current"
+              className="py-[3px] text-center text-[11.5px] font-medium text-[var(--cg-text-3)] underline decoration-white/30 underline-offset-2 transition-[color,transform] duration-100 active:scale-95 hover:text-[var(--cg-text-2)] hover:decoration-current"
             >
               Haven&apos;t watched it
             </button>

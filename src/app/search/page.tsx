@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TMDB_POSTER_BASE_URL, searchMulti, type MediaType } from "@/lib/tmdb";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
+import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 import { ingestAndViewAction } from "./actions";
 
 interface LocalResult {
@@ -80,7 +81,7 @@ export default async function SearchPage({
           />
           <button
             type="submit"
-            className="rounded-full bg-[var(--cg-primary)] px-7 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-[var(--cg-on-primary)]"
+            className="rounded-full bg-[var(--cg-primary)] px-7 py-[13px] text-[12.5px] font-bold tracking-[.1em] text-[var(--cg-on-primary)] transition-transform active:scale-95"
           >
             SEARCH
           </button>
@@ -131,7 +132,7 @@ export default async function SearchPage({
                     >
                       <input type="hidden" name="tmdbId" value={title.tmdbId} />
                       <input type="hidden" name="mediaType" value={title.mediaType} />
-                      <button type="submit" className="flex flex-col gap-[11px] text-left">
+                      <CgSubmitButton className="flex flex-col gap-[11px] bg-transparent text-left">
                         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[22px] bg-white/5 shadow-[0_18px_40px_rgba(2,6,14,.6)]">
                           {title.posterPath && (
                             <Image
@@ -144,7 +145,7 @@ export default async function SearchPage({
                           )}
                         </div>
                         <p className="truncate text-[13px] font-semibold text-[var(--cg-text-1)]">{title.title}</p>
-                      </button>
+                      </CgSubmitButton>
                     </form>
                   ))}
                 </div>

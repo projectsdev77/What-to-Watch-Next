@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { finishQuizAction } from "./actions";
 import { RATING_GOAL } from "./constants";
 import { QuizBatch } from "./quiz-batch";
+import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 
 const QUIZ_BATCH_SIZE = 9;
 // How deep into the catalog to draw candidates from — deliberately much
@@ -127,25 +128,25 @@ export default async function QuizOnboardingPage({
 
         <div className="flex flex-wrap items-center gap-[18px]">
           <form action={finishQuizAction}>
-            <button
-              type="submit"
+            <CgSubmitButton
               disabled={!goalReached}
-              className="rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 px-7 py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-text-2)] transition-colors hover:border-white/35 hover:text-[var(--cg-text-1)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/18 disabled:hover:text-[var(--cg-text-2)]"
+              pendingLabel="…"
+              className="rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 px-7 py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-text-2)] hover:border-white/35 hover:text-[var(--cg-text-1)] disabled:cursor-not-allowed disabled:hover:border-white/18 disabled:hover:text-[var(--cg-text-2)]"
             >
               {goalReached
                 ? "CONTINUE TO TONIGHT'S PICK"
                 : `RATE ${RATING_GOAL - ratedCount} MORE TO CONTINUE`}
-            </button>
+            </CgSubmitButton>
           </form>
 
           {!goalReached && (
             <form action={finishQuizAction}>
-              <button
-                type="submit"
-                className="text-[12.5px] font-medium text-[var(--cg-text-3)] underline decoration-white/30 underline-offset-2 transition-colors hover:text-[var(--cg-text-2)] hover:decoration-current"
+              <CgSubmitButton
+                pendingLabel="…"
+                className="bg-transparent text-[12.5px] font-medium text-[var(--cg-text-3)] underline decoration-white/30 underline-offset-2 hover:text-[var(--cg-text-2)] hover:decoration-current"
               >
                 Skip — I don&apos;t recognize these
-              </button>
+              </CgSubmitButton>
             </form>
           )}
         </div>

@@ -103,7 +103,7 @@ export default async function BrowsePage({
               </div>
               <button
                 type="submit"
-                className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[12px] text-[12px] font-bold tracking-[.09em] text-[var(--cg-on-primary)]"
+                className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[12px] text-[12px] font-bold tracking-[.09em] text-[var(--cg-on-primary)] transition-transform active:scale-95"
               >
                 APPLY
               </button>

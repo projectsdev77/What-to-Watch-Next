@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_REGION } from "@/lib/platforms";
 import { TMDB_BACKDROP_BASE_URL, TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
+import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 import { createWatchlistAction, deleteWatchlistAction, removeFromListAction } from "./actions";
 
 interface WatchlistItemTitle {
@@ -92,12 +93,12 @@ export default async function WatchlistPage() {
               required
               className="min-w-[210px] rounded-full border border-white/16 bg-white/7 px-[20px] py-[12px] text-[13px] text-[var(--cg-text-1)] placeholder:text-[var(--cg-text-3)]"
             />
-            <button
-              type="submit"
+            <CgSubmitButton
+              pendingLabel="…"
               className="rounded-full bg-[var(--cg-primary)] px-[26px] py-[13px] text-[12px] font-bold tracking-[.09em] text-[var(--cg-on-primary)]"
             >
               + NEW LIST
-            </button>
+            </CgSubmitButton>
           </form>
         </div>
 
@@ -131,12 +132,12 @@ export default async function WatchlistPage() {
                     <div className="h-px flex-1 bg-white/10" />
                     <form action={deleteWatchlistAction}>
                       <input type="hidden" name="watchlistId" value={list.id} />
-                      <button
-                        type="submit"
-                        className="text-[11.5px] font-bold tracking-[.09em] text-[var(--cg-danger)]"
+                      <CgSubmitButton
+                        pendingLabel="…"
+                        className="bg-transparent text-[11.5px] font-bold tracking-[.09em] text-[var(--cg-danger)]"
                       >
                         DELETE LIST
-                      </button>
+                      </CgSubmitButton>
                     </form>
                   </div>
 
@@ -176,12 +177,12 @@ export default async function WatchlistPage() {
                           <form action={removeFromListAction} className="ml-auto shrink-0">
                             <input type="hidden" name="watchlistId" value={list.id} />
                             <input type="hidden" name="titleId" value={title.id} />
-                            <button
-                              type="submit"
+                            <CgSubmitButton
+                              pendingLabel="…"
                               className="rounded-full border border-white/18 bg-white/8 px-[24px] py-[12px] text-[12px] font-semibold tracking-[.08em]"
                             >
                               REMOVE
-                            </button>
+                            </CgSubmitButton>
                           </form>
                         </div>
                       ))}

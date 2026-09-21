@@ -12,18 +12,22 @@ import type { ReactNode } from "react";
 export function CgSubmitButton({
   className,
   pendingLabel,
+  disabled,
   children,
 }: {
   className: string;
   pendingLabel?: ReactNode;
+  /** An extra condition (beyond the in-flight request) that should keep
+   * the button disabled — e.g. a gate like the quiz's rating threshold. */
+  disabled?: boolean;
   children: ReactNode;
 }) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      disabled={pending}
-      className={`${className} transition-[transform,opacity] active:scale-95 disabled:opacity-60`}
+      disabled={disabled || pending}
+      className={`${className} transition-[transform,opacity] active:scale-95 disabled:opacity-60 disabled:active:scale-100`}
     >
       {pending && pendingLabel ? pendingLabel : children}
     </button>

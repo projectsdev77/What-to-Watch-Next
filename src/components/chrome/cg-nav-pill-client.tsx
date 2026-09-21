@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signOutAction } from "@/app/login/actions";
+import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 
 const NAV_LINKS = [
   { href: "/", label: "Tonight's pick" },
@@ -45,12 +46,12 @@ export function CgNavPillClient({ active, userEmail }: { active?: NavHref; userE
         {userEmail && (
           <form action={signOutAction} className="ml-auto hidden items-center gap-[13px] lg:flex">
             <span className="hidden text-[12.5px] text-[var(--cg-text-3)] xl:inline">{userEmail}</span>
-            <button
-              type="submit"
+            <CgSubmitButton
+              pendingLabel="…"
               className="rounded-full border border-white/18 bg-white/9 px-5 py-[9px] text-[12px] font-semibold tracking-[.06em] text-[var(--cg-text-1)]"
             >
               LOG OUT
-            </button>
+            </CgSubmitButton>
           </form>
         )}
 
@@ -59,7 +60,7 @@ export function CgNavPillClient({ active, userEmail }: { active?: NavHref; userE
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/9 text-[var(--cg-text-1)] lg:hidden"
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full border border-white/18 bg-white/9 text-[var(--cg-text-1)] transition-transform active:scale-90 lg:hidden"
         >
           <span aria-hidden className="text-[15px] leading-none">
             {open ? "✕" : "☰"}
@@ -83,12 +84,12 @@ export function CgNavPillClient({ active, userEmail }: { active?: NavHref; userE
           {userEmail && (
             <form action={signOutAction} className="mt-[6px] flex flex-col gap-[8px]">
               <span className="truncate px-[4px] text-[12.5px] text-[var(--cg-text-3)]">{userEmail}</span>
-              <button
-                type="submit"
+              <CgSubmitButton
+                pendingLabel="…"
                 className="rounded-[var(--cg-r-input)] border border-white/18 bg-white/9 px-[16px] py-[11px] text-[12.5px] font-semibold tracking-[.06em] text-[var(--cg-text-1)]"
               >
                 LOG OUT
-              </button>
+              </CgSubmitButton>
             </form>
           )}
         </div>
