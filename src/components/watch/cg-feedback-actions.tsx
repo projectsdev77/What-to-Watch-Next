@@ -1,4 +1,4 @@
-import { submitPickFeedbackAction } from "@/app/actions";
+import { submitPickFeedbackAction, submitWatchedFeedbackAction } from "@/app/actions";
 import { addToDefaultWatchlistAction, addToListAction, removeFromAllWatchlistsAction } from "@/app/watchlist/actions";
 import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 
@@ -94,6 +94,36 @@ export function CgFeedbackActions({ titleId, redirectTo }: { titleId: number; re
           Another time
         </CgSubmitButton>
       </form>
+      <details className="relative">
+        <summary className={cls + " cursor-pointer list-none [&::-webkit-details-marker]:hidden"}>
+          Watched it already
+        </summary>
+        <div className="cg-pane absolute top-[calc(100%+6px)] left-0 z-10 flex min-w-[170px] flex-col gap-1 p-2">
+          <span className="px-2 pt-1 pb-1.5 text-[11px] font-bold tracking-[.1em] text-[var(--cg-text-3)]">
+            DID YOU LIKE IT?
+          </span>
+          <form action={submitWatchedFeedbackAction}>
+            <input type="hidden" name="titleId" value={titleId} />
+            <input type="hidden" name="status" value="liked" />
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <CgSubmitButton
+              className="w-full rounded-[var(--cg-r-input)] px-2 py-2 text-left text-[13px] font-medium text-[var(--cg-text-1)] hover:bg-white/8"
+            >
+              Liked it
+            </CgSubmitButton>
+          </form>
+          <form action={submitWatchedFeedbackAction}>
+            <input type="hidden" name="titleId" value={titleId} />
+            <input type="hidden" name="status" value="disliked" />
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <CgSubmitButton
+              className="w-full rounded-[var(--cg-r-input)] px-2 py-2 text-left text-[13px] font-medium text-[var(--cg-text-1)] hover:bg-white/8"
+            >
+              Disliked it
+            </CgSubmitButton>
+          </form>
+        </div>
+      </details>
     </div>
   );
 }

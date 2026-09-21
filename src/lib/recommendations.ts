@@ -81,6 +81,18 @@ const MAX_CANDIDATES = 1000;
 // eligible to be recommended again.
 const SKIP_COOLDOWN_HOURS = 24;
 
+// A title actually watched (watched_at set — via Watch Now or "Watched
+// it already") and liked shouldn't vanish from recommendations forever
+// the way a plain dislike does — someone may genuinely want to watch it
+// again. Eligible to resurface as a rewatch suggestion after this many
+// days, much longer than the skip cooldown since this is a different
+// kind of signal ("worth revisiting eventually", not "try again
+// tomorrow"). A dislike — watched or not — always stays permanently
+// excluded, and a plain "liked" with no watched_at (e.g. from the
+// onboarding quiz, never actually flagged as watched) isn't eligible
+// either, since there's nothing to actually "rewatch".
+const REWATCH_COOLDOWN_DAYS = 180;
+
 async function getCandidatePool(
   userId: string,
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -92,7 +104,7 @@ async function getCandidatePool(
       supabase.from("user_taste_profile").select("genre_weights").eq("user_id", userId).maybeSingle(),
       supabase
         .from("user_title_feedback")
-        .select("title_id, status, updated_at, titles(id, title, genre_ids)")
+        .select("title_id, status, updated_at, watched_at, titles(id, title, genre_ids)")
         .eq("user_id", userId),
       supabase.from("titles").select("*", { count: "exact", head: true }),
       // A title on ANY of the user's watchlists gets the bonus below —
@@ -124,6 +136,7 @@ async function getCandidatePool(
   // exclusions below so a nearly-exhausted pool can fall back to
   // ignoring the cooldown instead of dead-ending (see candidateIds).
   const skipCutoff = Date.now() - SKIP_COOLDOWN_HOURS * 60 * 60 * 1000;
+  const rewatchCutoff = Date.now() - REWATCH_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
   const permanentExcludedIds = new Set<number>();
   const recentSkipIds = new Set<number>();
   for (const row of feedbackRows ?? []) {
@@ -131,8 +144,18 @@ async function getCandidatePool(
     if (row.status === "skipped") {
       const skippedAt = new Date(row.updated_at as string).getTime();
       if (skippedAt > skipCutoff) recentSkipIds.add(titleId);
-    } else {
+    } else if (row.status === "disliked") {
+      // Always permanent — watched or not, a dislike is a dislike.
       permanentExcludedIds.add(titleId);
+    } else {
+      // liked / watched — eligible to resurface as a rewatch suggestion
+      // once it's actually been watched (watched_at set) and enough
+      // time has passed. A plain "liked" with no watched_at (e.g. from
+      // the onboarding quiz) has nothing to "rewatch", so it stays
+      // permanently excluded like before.
+      const watchedAt = row.watched_at ? new Date(row.watched_at as string).getTime() : null;
+      const eligibleForRewatch = watchedAt !== null && watchedAt < rewatchCutoff;
+      if (!eligibleForRewatch) permanentExcludedIds.add(titleId);
     }
   }
   const watchlistedIds = new Set((watchlistRows ?? []).map((row) => row.title_id as number));

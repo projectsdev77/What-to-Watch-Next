@@ -51,7 +51,12 @@ export function clampGenreWeight(weight: number): number {
  * retry button, rather than leaving the UI showing a reaction that was
  * never actually recorded.
  */
-export async function recordTitleFeedback(userId: string, titleId: number, status: FeedbackStatus) {
+export async function recordTitleFeedback(
+  userId: string,
+  titleId: number,
+  status: FeedbackStatus,
+  options: { watched?: boolean } = {}
+) {
   const supabase = await createClient();
 
   const { data: title, error: titleError } = await supabase
@@ -70,6 +75,7 @@ export async function recordTitleFeedback(userId: string, titleId: number, statu
     p_genre_ids: title.genre_ids as number[],
     p_delta: delta,
     p_max: MAX_GENRE_WEIGHT,
+    p_watched_at: options.watched ? new Date().toISOString() : null,
   });
   if (error) throw new Error(`Failed to record feedback: ${error.message}`);
 }

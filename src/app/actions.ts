@@ -7,6 +7,7 @@ import { recordTitleFeedback, undoTitleFeedback, type FeedbackStatus } from "@/l
 import { safeRedirectTarget } from "@/lib/redirect";
 
 const VALID_STATUSES: FeedbackStatus[] = ["liked", "disliked", "skipped", "watched"];
+const WATCHED_ALREADY_STATUSES = ["liked", "disliked"] as const;
 
 export async function submitPickFeedbackAction(formData: FormData) {
   const supabase = await createClient();
@@ -41,8 +42,37 @@ export async function recordWatchedAction(titleId: number, redirectTo: string) {
   } = await supabase.auth.getUser();
   if (!user || !titleId) return;
 
-  await recordTitleFeedback(user.id, titleId, "watched");
+  await recordTitleFeedback(user.id, titleId, "watched", { watched: true });
   revalidatePath(redirectTo);
+}
+
+/**
+ * "Watched it already" — for a title someone saw outside the app (or
+ * before ever getting recommended it), rather than through Watch Now.
+ * Unlike the blanket "watched = positive" assumption Watch Now makes,
+ * this records a real opinion (liked/disliked), so it feeds the taste
+ * profile accurately. Marking watched_at also makes a liked title
+ * eligible to resurface later as a rewatch suggestion instead of being
+ * excluded forever — see REWATCH_COOLDOWN_DAYS in recommendations.ts.
+ */
+export async function submitWatchedFeedbackAction(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const titleId = Number(formData.get("titleId"));
+  const status = String(formData.get("status"));
+  const redirectTo = safeRedirectTarget(formData);
+  if (!titleId || !WATCHED_ALREADY_STATUSES.includes(status as (typeof WATCHED_ALREADY_STATUSES)[number])) {
+    redirect(redirectTo);
+  }
+
+  await recordTitleFeedback(user.id, titleId, status as FeedbackStatus, { watched: true });
+
+  revalidatePath(redirectTo);
+  redirect(redirectTo);
 }
 
 /** Clears a reaction — for a misclick, since liked/disliked/watched
