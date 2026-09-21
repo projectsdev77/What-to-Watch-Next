@@ -14,6 +14,11 @@ export interface RecommendedTitle {
   voteAverage: number | null;
   genreIds: number[];
   platforms: string[];
+  // Confirmed per-platform deep link (Streaming Availability API, see
+  // streaming-availability.ts) when one's cached, null when there isn't
+  // one yet — the Watch Now button falls back to platform-links.ts's
+  // guessed-search/homepage link for a null entry.
+  platformLinks: Record<string, string | null>;
   matchPercent: number;
   why: string;
   watchUrl: string;
@@ -43,7 +48,10 @@ interface ScoredCandidate {
 
 interface CandidatePool {
   scored: ScoredCandidate[];
-  platformsByTitleId: Map<number, Set<string>>;
+  // Value is platform name -> confirmed deep link (or null when there
+  // isn't one cached yet) rather than a plain Set, so a Watch Now link
+  // can be built without a second query — see RecommendedTitle.platformLinks.
+  platformsByTitleId: Map<number, Map<string, string | null>>;
   likedTitlesByGenre: Map<number, string[]>;
   hasSignal: boolean;
   allPlatforms: string[];
@@ -162,20 +170,21 @@ async function getCandidatePool(
 
   const availabilityQuery = supabase
     .from("title_availability")
-    .select("title_id, platform_name")
+    .select("title_id, platform_name, deep_link")
     .eq("region", DEFAULT_REGION);
   const { data: availabilityRows } = unrestricted
     ? await availabilityQuery
     : await availabilityQuery.in("platform_name", realPlatformNames);
 
-  const platformsByTitleId = new Map<number, Set<string>>();
+  const platformsByTitleId = new Map<number, Map<string, string | null>>();
   const seenPlatforms = new Set<string>();
   for (const row of availabilityRows ?? []) {
     const titleId = row.title_id as number;
     const platformName = row.platform_name as string;
-    const set = platformsByTitleId.get(titleId) ?? new Set<string>();
-    set.add(platformName);
-    platformsByTitleId.set(titleId, set);
+    const deepLink = (row.deep_link as string | null | undefined) ?? null;
+    const map = platformsByTitleId.get(titleId) ?? new Map<string, string | null>();
+    map.set(platformName, deepLink);
+    platformsByTitleId.set(titleId, map);
     seenPlatforms.add(platformName);
   }
   if (platformsByTitleId.size === 0) return { status: "nothing-available" };
@@ -323,7 +332,8 @@ function toRecommended(candidate: ScoredCandidate, pool: CandidatePool, min: num
     posterPath: row.poster_path,
     voteAverage: row.vote_average,
     genreIds: row.genre_ids,
-    platforms: [...(pool.platformsByTitleId.get(row.id) ?? [])],
+    platforms: [...(pool.platformsByTitleId.get(row.id)?.keys() ?? [])],
+    platformLinks: Object.fromEntries(pool.platformsByTitleId.get(row.id) ?? []),
     matchPercent,
     why,
     // TMDB's real combined "where to watch" link (JustWatch) when we

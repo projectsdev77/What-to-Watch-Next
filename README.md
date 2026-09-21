@@ -29,35 +29,51 @@ confident "watch this tonight" pick instead of an endless scroll.
 - **"Watch Now" link.** TMDB's free API doesn't give a true per-platform
   deep link (there's no "open this exact title on Hulu" URL available
   without a paid feed), so "Watch Now" instead sends the user straight
-  to their own matching platform (`src/lib/platform-links.ts`) instead
-  of TMDB's combined "where to watch" page. When a title is available
-  on two or more of the user's selected platforms, "Watch Now" shows a
-  picker where each option deep-links to *that* platform specifically
-  (not a shared destination). Falls back to the old TMDB "where to
-  watch" page (`titles.justwatch_link`, or `tmdbTitleUrl` for titles
-  with no provider data) only when there's no matching platform to
-  link to at all (unrestricted/"Other" mode).
+  to their own matching platform instead of TMDB's combined "where to
+  watch" page. When a title is available on two or more of the user's
+  selected platforms, "Watch Now" shows a picker where each option
+  deep-links to *that* platform specifically (not a shared destination).
+  Falls back to the old TMDB "where to watch" page (`titles.justwatch_link`,
+  or `tmdbTitleUrl` for titles with no provider data) only when there's
+  no matching platform to link to at all (unrestricted/"Other" mode).
 
-  Only **Netflix** and **Prime Video** get a real search deep link
-  (e.g. `netflix.com/search?q=<title>`, landing pre-searched and
-  logged in, one tap from playing) — both URL patterns are
-  long-established and well documented. Every other platform
-  (Hulu, Disney+, Apple TV+, Max, Peacock, Paramount+) links to its
-  plain homepage instead of a guessed search URL: this project has no
-  way to verify a streaming site's URL scheme live, and a wrong guess
-  isn't a graceful landing on a blank search page — confirmed live, a
-  wrong Disney+ guess was a hard 404 branded page, worse than the old
-  TMDB link it replaced. Promote a platform to a search deep link in
-  `platform-links.ts` only once someone has actually clicked it and
-  confirmed the URL works.
+  Two link sources, tried in order:
 
-  **Still a real limitation worth flagging to the client:** even the
-  two platforms with a real search link land on *search results*, not
-  the title's exact detail/play page — no streaming service publishes
-  a free, official "open this exact title" deep-linking API. True
-  one-tap-to-exact-page linking, per platform, needs a paid data
-  source — Watchmode (linked above) is the recommended upgrade path if
-  that last step matters enough to justify the cost.
+  1. **Streaming Availability API** (movieofthenight.com,
+     `src/lib/streaming-availability.ts`) — a real, confirmed deep link
+     straight to the title's own page on Netflix, Prime Video, Disney+,
+     Apple TV+, Max, Hulu, or Peacock, fetched once per title at ingest
+     time (`ingestTitle` in `src/lib/catalog.ts`) and cached on
+     `title_availability.deep_link` (migration 0010). Optional and
+     server-side only: with no `STREAMING_AVAILABILITY_API_KEY` set, or
+     a lookup failing, this is simply skipped for that title/platform.
+
+     **Currently running on their free tier** — no card required, but
+     capped at **100 requests/day**. That's fine for development and
+     demoing (this app was built and tested entirely on it), but it is
+     *not* sized for production: the daily catalog sync alone can churn
+     through titles fast enough to hit that ceiling, at which point
+     further lookups just silently return nothing for the rest of the
+     day (falling back to source 2 below, same as if the key were unset)
+     until it resets. **A paid tier is a real requirement before this
+     goes live for real users** — check current pricing at
+     [movieofthenight.com](https://www.movieofthenight.com/about/api/pricing)
+     or via their RapidAPI listing before launch.
+
+  2. **Guessed search URL / homepage fallback**
+     (`src/lib/platform-links.ts`) — used for a platform/title this
+     project has no confirmed API-sourced link for. Only **Netflix**
+     and **Prime Video** get a real *search* deep link this way (e.g.
+     `netflix.com/search?q=<title>`) — both URL patterns are
+     long-established and well documented outside the API above. Every
+     other unconfirmed platform links to its plain homepage instead of
+     a guessed search URL: this project has no reliable way to
+     click-verify a streaming site's URL scheme on its own, and a wrong
+     guess isn't a graceful landing on a blank search page — confirmed
+     live, a wrong Disney+ guess was a hard 404 branded page, worse
+     than the old TMDB link it replaced. Promote a platform to a search
+     deep link here only once someone has actually clicked it and
+     confirmed the URL works.
 
 ## Movies vs TV Shows
 

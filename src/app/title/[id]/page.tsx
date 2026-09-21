@@ -39,7 +39,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
       .maybeSingle(),
     supabase
       .from("title_availability")
-      .select("platform_name")
+      .select("platform_name, deep_link")
       .eq("title_id", titleId)
       .eq("region", DEFAULT_REGION),
     supabase
@@ -56,6 +56,9 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   if (!title) notFound();
 
   const platforms = [...new Set((availabilityRows ?? []).map((r) => r.platform_name as string))];
+  const platformLinks = Object.fromEntries(
+    (availabilityRows ?? []).map((r) => [r.platform_name as string, (r.deep_link as string | null) ?? null])
+  );
   const redirectTo = `/title/${titleId}`;
   const isWatchlisted = (watchlistRows ?? []).length > 0;
 
@@ -180,6 +183,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
                 titleId={title.id}
                 redirectTo={redirectTo}
                 matchingPlatforms={matchingPlatforms}
+                platformLinks={platformLinks}
                 fallbackUrl={title.justwatch_link ?? tmdbTitleUrl(title.media_type, title.tmdb_id)}
               />
               <CgWatchlistButton

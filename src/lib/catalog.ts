@@ -9,6 +9,7 @@ import {
 } from "@/lib/tmdb";
 import { normalizeProviderName, DEFAULT_REGION } from "@/lib/platforms";
 import { getOmdbRatings } from "@/lib/omdb";
+import { getDeepLinksByPlatform } from "@/lib/streaming-availability";
 
 /**
  * Fetches one title from TMDB and upserts it (plus its streaming
@@ -44,6 +45,11 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
 
     const imdbId = details.external_ids?.imdb_id ?? null;
     const ratings = imdbId ? await getOmdbRatings(imdbId) : null;
+
+    // Real per-platform deep links (see streaming-availability.ts) —
+    // optional and best-effort, only looked up when there's actually a
+    // platform to attach one to.
+    const deepLinks = platforms.length > 0 ? await getDeepLinksByPlatform(mediaType, tmdbId) : null;
 
     const { data: title, error: titleError } = await admin
       .from("titles")
@@ -81,12 +87,28 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
       return null;
     }
 
+    // Fetched before the upsert below so it can serve two purposes: (1)
+    // preserve a previously-confirmed deep_link when this run's lookup
+    // came back empty (a transient Streaming Availability failure, or
+    // no STREAMING_AVAILABILITY_API_KEY set at all, shouldn't erase a
+    // link an earlier successful run already cached), and (2) the
+    // stale-platform diff further below — one query instead of two.
+    const { data: existingAvailability } = await admin
+      .from("title_availability")
+      .select("platform_name, deep_link")
+      .eq("title_id", title.id)
+      .eq("region", DEFAULT_REGION);
+    const existingDeepLinkByPlatform = new Map(
+      (existingAvailability ?? []).map((row) => [row.platform_name as string, row.deep_link as string | null])
+    );
+
     if (platforms.length > 0) {
       const { error: availabilityError } = await admin.from("title_availability").upsert(
         platforms.map((platformName) => ({
           title_id: title.id,
           region: DEFAULT_REGION,
           platform_name: platformName,
+          deep_link: deepLinks?.[platformName] ?? existingDeepLinkByPlatform.get(platformName) ?? null,
           cached_at: new Date().toISOString(),
         })),
         { onConflict: "title_id,region,platform_name" }
@@ -101,21 +123,14 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
     // The upsert above only adds/refreshes platforms TMDB currently
     // reports — it never removes one, so a title that leaves a service
     // would otherwise stay listed as available there forever. Diff
-    // against what's actually stored and delete anything not in the
+    // against what was actually stored and delete anything not in the
     // current list (in JS rather than a raw "not in (...)" filter, so
     // there's no risk of malformed SQL from a platform name containing
     // a comma/quote, and the empty-`platforms` case — a title with no
     // known providers right now — just falls out naturally as "delete
     // everything stored").
-    const { data: existingAvailability } = await admin
-      .from("title_availability")
-      .select("platform_name")
-      .eq("title_id", title.id)
-      .eq("region", DEFAULT_REGION);
     const currentPlatforms = new Set<string>(platforms);
-    const stalePlatforms = (existingAvailability ?? [])
-      .map((row) => row.platform_name as string)
-      .filter((name) => !currentPlatforms.has(name));
+    const stalePlatforms = [...existingDeepLinkByPlatform.keys()].filter((name) => !currentPlatforms.has(name));
     if (stalePlatforms.length > 0) {
       const { error: staleError } = await admin
         .from("title_availability")

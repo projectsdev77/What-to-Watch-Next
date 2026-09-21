@@ -11,23 +11,27 @@ const BUTTON_CLASS =
 /** Cinematic Glass version of WatchNowButton — same behavior (Watch Now
  * itself records a "watched" judgment, fire-and-forget), new look.
  *
- * Deep-links straight to the user's own matching platform (see
- * platform-links.ts — a search results page where we have a confirmed
- * URL for it, that platform's homepage otherwise) instead of TMDB's
- * combined "where to watch" page, so there's no second platform choice.
- * Falls back to the generic fallbackUrl only when there's no platform
- * to link to at all (unrestricted mode, or "Other"). */
+ * Deep-links straight to the user's own matching platform instead of
+ * TMDB's combined "where to watch" page, so there's no second platform
+ * choice. For each matching platform, prefers a real confirmed link
+ * from `platformLinks` (Streaming Availability API, cached at ingest
+ * time — see streaming-availability.ts) when there is one; falls back
+ * to platform-links.ts's guessed-search/homepage link otherwise. Falls
+ * back further to the generic fallbackUrl only when there's no
+ * platform to link to at all (unrestricted mode, or "Other"). */
 export function CgWatchNowButton({
   title,
   titleId,
   redirectTo,
   matchingPlatforms,
+  platformLinks,
   fallbackUrl,
 }: {
   title: string;
   titleId: number;
   redirectTo: string;
   matchingPlatforms: string[];
+  platformLinks?: Record<string, string | null>;
   fallbackUrl: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -38,7 +42,7 @@ export function CgWatchNowButton({
   }
 
   const deepLinks = matchingPlatforms
-    .map((platform) => ({ platform, url: platformDeepLink(platform, title) }))
+    .map((platform) => ({ platform, url: platformLinks?.[platform] || platformDeepLink(platform, title) }))
     .filter((entry): entry is { platform: string; url: string } => entry.url !== null);
 
   if (deepLinks.length < 2) {

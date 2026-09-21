@@ -105,6 +105,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 titleId={pick.id}
                 redirectTo={redirectTo}
                 matchingPlatforms={matchingPlatforms}
+                platformLinks={pick.platformLinks}
                 fallbackUrl={pick.watchUrl}
               />
               <CgWatchlistButton
