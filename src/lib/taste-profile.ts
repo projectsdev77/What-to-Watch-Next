@@ -73,3 +73,30 @@ export async function recordTitleFeedback(userId: string, titleId: number, statu
   });
   if (error) throw new Error(`Failed to record feedback: ${error.message}`);
 }
+
+/**
+ * Undoes a reaction — clears the feedback row and reverses whatever
+ * genre-weight delta it applied, via undo_title_feedback (migration
+ * 0008). A no-op if there was nothing to undo. Same atomicity rationale
+ * as recordTitleFeedback: the lookup of what to reverse happens inside
+ * the DB function under its advisory lock, not read here in JS first,
+ * so there's no gap for a concurrent call to race with.
+ */
+export async function undoTitleFeedback(userId: string, titleId: number) {
+  const supabase = await createClient();
+
+  const { data: title, error: titleError } = await supabase
+    .from("titles")
+    .select("genre_ids")
+    .eq("id", titleId)
+    .single();
+  if (titleError || !title) throw new Error(`Failed to look up title ${titleId}: ${titleError?.message}`);
+
+  const { error } = await supabase.rpc("undo_title_feedback", {
+    p_user_id: userId,
+    p_title_id: titleId,
+    p_genre_ids: title.genre_ids as number[],
+    p_max: MAX_GENRE_WEIGHT,
+  });
+  if (error) throw new Error(`Failed to undo feedback: ${error.message}`);
+}

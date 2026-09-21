@@ -8,6 +8,8 @@ import { TMDB_BACKDROP_BASE_URL, TMDB_POSTER_BASE_URL, tmdbTitleUrl } from "@/li
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { CgWatchNowButton } from "@/components/watch/cg-watch-now-button";
 import { CgWatchlistButton, CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
+import { CgSubmitButton } from "@/components/watch/cg-submit-button";
+import { undoFeedbackAction } from "@/app/actions";
 
 export default async function TitleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
@@ -155,9 +157,21 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
             )}
 
             {feedback?.status && (
-              <p className="text-[12px] font-semibold tracking-[.08em] text-[var(--cg-text-3)] uppercase">
-                Your status: {feedback.status}
-              </p>
+              <div className="flex items-center gap-[10px]">
+                <p className="text-[12px] font-semibold tracking-[.08em] text-[var(--cg-text-3)] uppercase">
+                  Your status: {feedback.status}
+                </p>
+                <form action={undoFeedbackAction}>
+                  <input type="hidden" name="titleId" value={title.id} />
+                  <input type="hidden" name="redirectTo" value={redirectTo} />
+                  <CgSubmitButton
+                    className="text-[12px] font-semibold text-[var(--cg-accent)] underline"
+                    pendingLabel="Undoing…"
+                  >
+                    Undo
+                  </CgSubmitButton>
+                </form>
+              </div>
             )}
 
             <div className="flex flex-wrap items-center gap-[11px] pt-0.5">

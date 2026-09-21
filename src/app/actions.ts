@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { recordTitleFeedback, type FeedbackStatus } from "@/lib/taste-profile";
+import { recordTitleFeedback, undoTitleFeedback, type FeedbackStatus } from "@/lib/taste-profile";
 import { safeRedirectTarget } from "@/lib/redirect";
 
 const VALID_STATUSES: FeedbackStatus[] = ["liked", "disliked", "skipped", "watched"];
@@ -43,4 +43,25 @@ export async function recordWatchedAction(titleId: number, redirectTo: string) {
 
   await recordTitleFeedback(user.id, titleId, "watched");
   revalidatePath(redirectTo);
+}
+
+/** Clears a reaction — for a misclick, since liked/disliked/watched
+ * used to be permanent with no way back. Surfaced on the title detail
+ * page next to "Your status: X", the one place that already shows a
+ * title's current feedback status. */
+export async function undoFeedbackAction(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const titleId = Number(formData.get("titleId"));
+  const redirectTo = safeRedirectTarget(formData);
+  if (!titleId) redirect(redirectTo);
+
+  await undoTitleFeedback(user.id, titleId);
+
+  revalidatePath(redirectTo);
+  redirect(redirectTo);
 }
