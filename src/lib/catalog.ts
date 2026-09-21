@@ -166,15 +166,23 @@ export async function syncCatalogBatch(mediaType: MediaType, pageCount: number):
     .eq("media_type", mediaType)
     .maybeSingle();
   let page = (state?.last_page as number | undefined) ?? 0;
-
+  // `page` only ever advances past a page that was actually fetched
+  // successfully — if a page fails, the loop stops for this run without
+  // moving past it, so the *next* scheduled run retries that same page
+  // instead of silently skipping it forever (which the old code did:
+  // the loop counter advanced every iteration regardless of whether the
+  // fetch for it succeeded, and whatever it ended at is what got
+  // persisted as "done").
   const summaries: TmdbTitleSummary[] = [];
   for (let i = 0; i < pageCount; i++) {
-    page = page >= DISCOVER_MAX_PAGE ? 1 : page + 1;
+    const nextPage = page >= DISCOVER_MAX_PAGE ? 1 : page + 1;
     try {
-      const result = await getDiscover(mediaType, page);
+      const result = await getDiscover(mediaType, nextPage);
       summaries.push(...result.results);
+      page = nextPage;
     } catch (err) {
-      console.error(`Discover fetch failed for ${mediaType} page ${page}:`, err instanceof Error ? err.message : err);
+      console.error(`Discover fetch failed for ${mediaType} page ${nextPage}:`, err instanceof Error ? err.message : err);
+      break;
     }
   }
 
