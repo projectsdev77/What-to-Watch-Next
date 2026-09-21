@@ -98,6 +98,36 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
       }
     }
 
+    // The upsert above only adds/refreshes platforms TMDB currently
+    // reports — it never removes one, so a title that leaves a service
+    // would otherwise stay listed as available there forever. Diff
+    // against what's actually stored and delete anything not in the
+    // current list (in JS rather than a raw "not in (...)" filter, so
+    // there's no risk of malformed SQL from a platform name containing
+    // a comma/quote, and the empty-`platforms` case — a title with no
+    // known providers right now — just falls out naturally as "delete
+    // everything stored").
+    const { data: existingAvailability } = await admin
+      .from("title_availability")
+      .select("platform_name")
+      .eq("title_id", title.id)
+      .eq("region", DEFAULT_REGION);
+    const currentPlatforms = new Set<string>(platforms);
+    const stalePlatforms = (existingAvailability ?? [])
+      .map((row) => row.platform_name as string)
+      .filter((name) => !currentPlatforms.has(name));
+    if (stalePlatforms.length > 0) {
+      const { error: staleError } = await admin
+        .from("title_availability")
+        .delete()
+        .eq("title_id", title.id)
+        .eq("region", DEFAULT_REGION)
+        .in("platform_name", stalePlatforms);
+      if (staleError) {
+        console.error(`Failed to clear stale availability for ${mediaType}/${tmdbId}:`, staleError.message);
+      }
+    }
+
     return title.id as number;
   } catch (err) {
     console.error(`Failed to ingest ${mediaType}/${tmdbId}:`, err instanceof Error ? err.message : err);
