@@ -42,6 +42,7 @@ interface FeedbackFixture {
   title_id: number;
   status: "liked" | "disliked" | "skipped" | "watched";
   updated_at: string;
+  watched_at?: string | null;
   titles?: { title: string; genre_ids: number[] } | null;
 }
 
@@ -442,6 +443,79 @@ describe("getDiscoverList — feedback exclusion rules", () => {
     const result = await getDiscoverList("u1");
     if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
     expect(result.titles.map((t) => t.id)).toEqual([23]);
+  });
+});
+
+describe("getDiscoverList — rewatch resurfacing", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it("resurfaces a liked title once it was actually watched over 180 days ago", async () => {
+    const titles = [title(30, [28], 5.0, "Liked long ago, rewatch-eligible")];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: [{ title_id: 30, platform_name: "Netflix" }],
+      candidateTitles: titles,
+      genreWeights: {},
+      feedback: [
+        {
+          title_id: 30,
+          status: "liked",
+          updated_at: new Date(Date.now() - 181 * DAY).toISOString(),
+          watched_at: new Date(Date.now() - 181 * DAY).toISOString(),
+        },
+      ],
+    });
+
+    const result = await getDiscoverList("u1");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.titles.map((t) => t.id)).toEqual([30]);
+  });
+
+  it("keeps a liked-and-watched title excluded until the rewatch cooldown has actually passed", async () => {
+    const titles = [title(31, [28], 5.0, "Watched recently, not yet eligible"), title(32, [28], 5.0, "Untouched")];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      genreWeights: {},
+      feedback: [
+        {
+          title_id: 31,
+          status: "liked",
+          updated_at: new Date(Date.now() - 30 * DAY).toISOString(),
+          watched_at: new Date(Date.now() - 30 * DAY).toISOString(),
+        },
+      ],
+    });
+
+    const result = await getDiscoverList("u1");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.titles.map((t) => t.id)).toEqual([32]);
+  });
+
+  it("never resurfaces a disliked-and-watched title, no matter how long ago it was watched", async () => {
+    const titles = [title(33, [28], 5.0, "Disliked long ago"), title(34, [28], 5.0, "Untouched")];
+    mockSupabaseFor({
+      userPlatforms: ["Netflix"],
+      titlesTotalCount: titles.length,
+      availability: titles.map((t) => ({ title_id: t.id, platform_name: "Netflix" })),
+      candidateTitles: titles,
+      genreWeights: {},
+      feedback: [
+        {
+          title_id: 33,
+          status: "disliked",
+          updated_at: new Date(Date.now() - 365 * DAY).toISOString(),
+          watched_at: new Date(Date.now() - 365 * DAY).toISOString(),
+        },
+      ],
+    });
+
+    const result = await getDiscoverList("u1");
+    if (result.status !== "ok") throw new Error(`expected ok, got ${result.status}`);
+    expect(result.titles.map((t) => t.id)).toEqual([34]);
   });
 });
 
