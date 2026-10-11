@@ -13,7 +13,15 @@
 
 import type { MediaType } from "@/lib/tmdb";
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+// Model id, not a fixed contract — Google periodically restricts or
+// retires older Gemini models (e.g. the 2.5 family lost default access
+// on 2026-09-18, routed only to recently-active projects), so this can
+// silently stop working if left pointed at a retired id. If Tonight's
+// Pick AI picks seem to have stopped (the "why" text reverts to the
+// plain rule-based copy in toRecommended, recommendations.ts), check
+// https://ai.google.dev/gemini-api/docs/changelog for a newer stable
+// Flash model and update this constant.
+const GEMINI_MODEL = "gemini-3.8-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const REQUEST_TIMEOUT_MS = 6000;
 const MAX_WHY_LENGTH = 240;
@@ -98,7 +106,10 @@ export async function chooseTonightsPick(shortlist: ShortlistTitle[], context: T
         },
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`Gemini API error (${res.status}) for model ${GEMINI_MODEL}:`, await res.text());
+      return null;
+    }
 
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -111,7 +122,8 @@ export async function chooseTonightsPick(shortlist: ShortlistTitle[], context: T
     if (!why) return null;
 
     return { titleId: Number(parsed.titleId), why: why.slice(0, MAX_WHY_LENGTH) };
-  } catch {
+  } catch (err) {
+    console.error("Gemini API call failed:", err instanceof Error ? err.message : err);
     return null;
   } finally {
     clearTimeout(timeout);
