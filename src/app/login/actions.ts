@@ -71,6 +71,14 @@ export async function signUpAction(
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return { variant: "error", message: error.message };
 
+  // Signing up with an already-confirmed email still "succeeds" — Supabase
+  // hides account existence by default and sends no email. The tell is a
+  // user with no identities; surface it instead of a misleading "check
+  // your email" (an accepted trade-off: this reveals the email is taken).
+  if (data.user && data.user.identities?.length === 0) {
+    return { variant: "error", message: "An account with this email already exists. Log in instead." };
+  }
+
   if (!data.session) {
     // Supabase's default "Confirm email" setting is on — no active
     // session until the user clicks the confirmation link.
