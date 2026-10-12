@@ -63,7 +63,7 @@ export default async function QuizOnboardingPage() {
     <div className="cg-screen relative min-h-screen bg-[var(--cg-ground-alt)] font-sans text-[var(--cg-text-1)]">
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.78)_0%,rgba(6,11,20,.96)_26%,#070D18_46%)]" />
 
-      <div className="relative mx-auto flex max-w-3xl flex-col gap-6 p-[22px] pb-16">
+      <div className="relative mx-auto flex max-w-3xl flex-col gap-6 p-[22px] pb-0">
         <div className="cg-nav flex items-center gap-6 px-[22px] py-[13px]">
           <span className="font-wordmark text-[16px] tracking-[-.03em] text-[var(--cg-text-1)]">WWN</span>
           <span className="ml-auto text-[12px] font-semibold tracking-[.16em] text-[var(--cg-text-3)]">
@@ -103,12 +103,19 @@ export default async function QuizOnboardingPage() {
           <QuizBatch titles={sortedUnrated} />
         )}
 
-        <div className="flex flex-wrap items-center gap-[18px]">
+        {/* Pinned to the bottom of the screen: the card grid is always
+            full now, so in normal flow these buttons would sit below the
+            fold and the user would never see Continue unlock. */}
+        <div className="sticky bottom-0 z-10 -mx-[22px] flex flex-wrap items-center gap-[18px] border-t border-white/10 bg-[rgba(7,13,24,.88)] px-[22px] py-4 backdrop-blur-[16px]">
           <form action={finishQuizAction}>
             <CgSubmitButton
               disabled={!goalReached}
               pendingLabel="…"
-              className="rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 px-7 py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-text-2)] hover:border-white/35 hover:text-[var(--cg-text-1)] disabled:cursor-not-allowed disabled:hover:border-white/18 disabled:hover:text-[var(--cg-text-2)]"
+              className={
+                goalReached
+                  ? "rounded-[var(--cg-r-input)] bg-[var(--cg-primary)] px-7 py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-on-primary)] hover:opacity-90"
+                  : "rounded-[var(--cg-r-input)] border border-white/18 bg-white/8 px-7 py-[13px] text-[12.5px] font-bold tracking-[.12em] text-[var(--cg-text-2)] disabled:cursor-not-allowed"
+              }
             >
               {goalReached
                 ? "CONTINUE TO TONIGHT'S PICK"
