@@ -172,9 +172,13 @@ async function getCandidatePool(
     .from("title_availability")
     .select("title_id, platform_name, deep_link")
     .eq("region", DEFAULT_REGION);
-  const { data: availabilityRows } = unrestricted
+  const { data: availabilityRows, error: availabilityError } = unrestricted
     ? await availabilityQuery
     : await availabilityQuery.in("platform_name", realPlatformNames);
+  // A failed query (e.g. a column missing because a migration wasn't
+  // applied) must not fall through as "nothing-available" — that silently
+  // tells every user the catalog is empty when it isn't.
+  if (availabilityError) throw new Error(`Failed to load title availability: ${availabilityError.message}`);
 
   const platformsByTitleId = new Map<number, Map<string, string | null>>();
   const seenPlatforms = new Set<string>();

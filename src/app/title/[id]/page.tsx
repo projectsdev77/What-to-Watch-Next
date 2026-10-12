@@ -24,7 +24,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
 
   const [
     { data: title },
-    { data: availabilityRows },
+    { data: availabilityRows, error: availabilityError },
     { data: feedback },
     { data: userPlatformRows },
     { data: watchlistRows },
@@ -54,6 +54,7 @@ export default async function TitleDetailPage({ params }: { params: Promise<{ id
   ]);
 
   if (!title) notFound();
+  if (availabilityError) throw new Error(`Failed to load title availability: ${availabilityError.message}`);
 
   const platforms = [...new Set((availabilityRows ?? []).map((r) => r.platform_name as string))];
   const platformLinks = Object.fromEntries(
