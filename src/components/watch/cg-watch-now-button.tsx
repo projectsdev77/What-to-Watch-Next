@@ -8,8 +8,9 @@ import { platformDeepLink } from "@/lib/platform-links";
 const BUTTON_CLASS =
   "rounded-full bg-[var(--cg-primary)] px-[38px] py-[16px] text-[13.5px] font-bold tracking-[.08em] text-[var(--cg-on-primary)] shadow-[0_18px_38px_rgba(2,6,14,.55)] transition-transform active:scale-95";
 
-/** Cinematic Glass version of WatchNowButton — same behavior (Watch Now
- * itself records a "watched" judgment, fire-and-forget), new look.
+/** Cinematic Glass version of WatchNowButton. Clicking marks the title
+ * "watched" (opinion pending, fire-and-forget) and refreshes the page,
+ * which then shows the "How was it?" check-in (CgWatchCheckIn).
  *
  * Deep-links straight to the user's own matching platform instead of
  * TMDB's combined "where to watch" page, so there's no second platform

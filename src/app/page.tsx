@@ -9,6 +9,7 @@ import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
 import { CgWatchNowButton } from "@/components/watch/cg-watch-now-button";
 import { CgWatchlistButton, CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
+import { CgWatchCheckIn } from "@/components/watch/cg-watch-check-in";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const supabase = await createClient();
@@ -23,6 +24,36 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
   const mediaType = parseMediaType((await searchParams).type);
   const redirectTo = mediaType === "movie" ? "/" : "/?type=tv";
+
+  // A Watch Now click leaves the title "watched" with no opinion yet — ask
+  // how it was before showing the next pick, so the taste profile learns
+  // from a real answer instead of assuming every click was a like.
+  const { data: pendingWatch } = await supabase
+    .from("user_title_feedback")
+    .select("title_id, titles(title, poster_path)")
+    .eq("user_id", user.id)
+    .eq("status", "watched")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const pendingTitle = pendingWatch?.titles as unknown as { title: string; poster_path: string | null } | null;
+  if (pendingWatch && pendingTitle) {
+    return (
+      <div className="cg-screen min-h-screen bg-[var(--cg-ground)] font-sans text-[var(--cg-text-1)]">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-[22px]">
+          <CgNavPill active="/" />
+          <div className="px-4 py-12">
+            <CgWatchCheckIn
+              titleId={pendingWatch.title_id as number}
+              title={pendingTitle.title}
+              posterPath={pendingTitle.poster_path}
+              redirectTo={redirectTo}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [result, { data: lists }] = await Promise.all([
     getTonightsPick(user.id, mediaType),

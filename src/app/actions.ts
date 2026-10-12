@@ -28,12 +28,14 @@ export async function submitPickFeedbackAction(formData: FormData) {
 }
 
 /**
- * Records Watch Now as a real signal — called directly (not through a
- * <form>) from WatchNowButton's onClick, fired alongside the external
- * link opening in a new tab. Deliberately doesn't redirect(): the
- * current tab isn't navigating anywhere, the new tab is the actual
- * destination, so the caller just refreshes the current view once this
- * resolves.
+ * Marks a title "watched" when Watch Now is clicked — called directly
+ * (not through a <form>) from WatchNowButton's onClick, alongside the
+ * external link opening in a new tab. This is "opinion pending", not a
+ * like: it carries no taste-profile weight, and Tonight's Pick shows a
+ * "How was it?" check-in (CgWatchCheckIn) until the user answers.
+ * Deliberately doesn't redirect(): the new tab is the destination, so
+ * the caller just refreshes the current view, which brings up the
+ * check-in.
  */
 export async function recordWatchedAction(titleId: number, redirectTo: string) {
   const supabase = await createClient();
@@ -47,11 +49,9 @@ export async function recordWatchedAction(titleId: number, redirectTo: string) {
 }
 
 /**
- * "Watched it already" — for a title someone saw outside the app (or
- * before ever getting recommended it), rather than through Watch Now.
- * Unlike the blanket "watched = positive" assumption Watch Now makes,
- * this records a real opinion (liked/disliked), so it feeds the taste
- * profile accurately. Marking watched_at also makes a liked title
+ * Records a real opinion (liked/disliked) on a title the user has seen —
+ * from the "Watched it already" dropdown, and from the "How was it?"
+ * check-in after Watch Now. Marking watched_at also makes a liked title
  * eligible to resurface later as a rewatch suggestion instead of being
  * excluded forever — see REWATCH_COOLDOWN_DAYS in recommendations.ts.
  */
@@ -70,6 +70,36 @@ export async function submitWatchedFeedbackAction(formData: FormData) {
   }
 
   await recordTitleFeedback(user.id, titleId, status as FeedbackStatus, { watched: true });
+
+  revalidatePath(redirectTo);
+  redirect(redirectTo);
+}
+
+/**
+ * "Haven't watched it" on the post-Watch Now check-in: clears the pending
+ * "watched" mark so the title goes back to being a normal candidate (it
+ * will usually come straight back as Tonight's Pick). A plain delete is
+ * enough — a pending "watched" carries no taste-profile weight to reverse.
+ * Only ever deletes a row still in the pending state, never a real opinion.
+ */
+export async function clearPendingWatchAction(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const titleId = Number(formData.get("titleId"));
+  const redirectTo = safeRedirectTarget(formData);
+  if (!titleId) redirect(redirectTo);
+
+  const { error } = await supabase
+    .from("user_title_feedback")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("title_id", titleId)
+    .eq("status", "watched");
+  if (error) throw new Error(`Failed to clear pending watch: ${error.message}`);
 
   revalidatePath(redirectTo);
   redirect(redirectTo);

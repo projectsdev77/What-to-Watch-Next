@@ -2,14 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 
 export type FeedbackStatus = "liked" | "disliked" | "skipped" | "watched";
 
-// "watched" carries the same weight as "liked" — clicking Watch Now is a
-// real behavioral commitment (stronger than an abstract Like, arguably),
-// and it's now the only positive signal on Tonight's Pick since there's
-// no separate Like button there anymore.
+// "watched" (set by Watch Now) means "opened it, opinion pending" and
+// carries no weight — Tonight's Pick then asks how it was, and that
+// liked/disliked answer is what moves the profile. Mirrors
+// genre_weight_for_status() in supabase/migrations/0011_reaction_switch.sql,
+// which is what actually applies these once that migration is in place.
 const GENRE_WEIGHT_DELTA: Partial<Record<FeedbackStatus, number>> = {
   liked: 1,
   disliked: -0.5,
-  watched: 1,
 };
 
 // Without a ceiling, a genre someone rates a lot of just keeps growing
@@ -26,8 +26,8 @@ export function clampGenreWeight(weight: number): number {
 }
 
 /**
- * Records a user's reaction to a title and, for liked/disliked/watched,
- * nudges their taste profile's genre weights. Only for use
+ * Records a user's reaction to a title and, for liked/disliked, nudges
+ * their taste profile's genre weights. Only for use
  * post-onboarding — the onboarding quiz writes feedback directly and
  * computes the taste profile once in bulk at the end (see
  * src/app/onboarding/quiz/actions.ts), since a taste-profile row
