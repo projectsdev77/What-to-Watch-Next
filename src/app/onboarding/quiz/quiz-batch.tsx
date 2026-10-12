@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import { rateTitleAction } from "./actions";
+import { pickVisible, withDismissed } from "./quiz-pool";
 import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 
 interface QuizTitle {
@@ -13,38 +13,33 @@ interface QuizTitle {
   poster_path: string | null;
 }
 
-/**
- * "Didn't Watch" never calls the server at all — per design, it has zero
- * effect (no taste-profile change, not excluded, stays eligible to be
- * recommended again later), so there's nothing to persist. It just hides
- * the card from *this* rendered batch via local state. Liked/Disliked
- * still submit to rateTitleAction as real server actions — those are
- * genuine judgments that need to be saved.
- *
- * Cards are keyed by title id, so when a rated title's server action
- * revalidates the page and a fresh title backfills its spot, React only
- * mounts the new card (the rest keep their existing DOM nodes) — that's
- * what makes the fade-in below play just for the arrival, not the whole
- * grid re-rendering.
- */
-export function QuizBatch({ batch, batchIndex }: { batch: QuizTitle[]; batchIndex: number }) {
-  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
-  const visible = batch.filter((t) => !dismissedIds.has(t.id));
+const VISIBLE_COUNT = 9;
 
-  if (visible.length === 0) {
-    return (
-      <div className="mb-8 flex flex-col gap-3">
-        <p className="text-[14.5px] text-[var(--cg-text-2)]">
-          That&apos;s everything in this batch.
-        </p>
-        <Link
-          href={`/onboarding/quiz?batch=${batchIndex + 1}`}
-          className="self-start rounded-[var(--cg-r-input)] bg-[var(--cg-primary)] px-6 py-[12px] text-[12.5px] font-bold tracking-[.08em] text-[var(--cg-on-primary)] transition-opacity hover:opacity-90"
-        >
-          SHOW ME DIFFERENT TITLES
-        </Link>
-      </div>
-    );
+/**
+ * Shows the next VISIBLE_COUNT titles from the user's whole unrated pool,
+ * so every rating or "Haven't watched it" immediately pulls the next one
+ * in — the grid stays full and the user never sees the pool run out.
+ *
+ * "Haven't watched it" never calls the server — it has zero effect (no
+ * taste-profile change, not excluded from recommendations), so it only
+ * hides the card via local state. Liked/Disliked submit to
+ * rateTitleAction; the revalidated page then sends a pool without that
+ * title. Once fewer than VISIBLE_COUNT undismissed titles remain, the
+ * longest-ago-dismissed ones are quietly cycled back in, since they were
+ * only skipped, never judged.
+ *
+ * Cards are keyed by title id, so a backfilled title is the only newly
+ * mounted card — that's what makes the fade-in play just for the arrival.
+ */
+export function QuizBatch({ titles }: { titles: QuizTitle[] }) {
+  // Insertion order = dismissal order (oldest first), which is what
+  // decides which skipped titles get recycled first.
+  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
+
+  const visible = pickVisible(titles, dismissedIds, VISIBLE_COUNT);
+
+  function dismiss(id: number) {
+    setDismissedIds((prev) => withDismissed(prev, id));
   }
 
   return (
@@ -93,7 +88,7 @@ export function QuizBatch({ batch, batchIndex }: { batch: QuizTitle[]; batchInde
             </div>
             <button
               type="button"
-              onClick={() => setDismissedIds((prev) => new Set(prev).add(title.id))}
+              onClick={() => dismiss(title.id)}
               className="py-[3px] text-center text-[11.5px] font-medium text-[var(--cg-text-3)] underline decoration-white/30 underline-offset-2 transition-[color,transform] duration-100 active:scale-95 hover:text-[var(--cg-text-2)] hover:decoration-current"
             >
               Haven&apos;t watched it

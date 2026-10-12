@@ -5,11 +5,10 @@ import { RATING_GOAL } from "./constants";
 import { QuizBatch } from "./quiz-batch";
 import { CgSubmitButton } from "@/components/watch/cg-submit-button";
 
-const QUIZ_BATCH_SIZE = 9;
-// How deep into the catalog to draw candidates from — deliberately much
-// larger than RATING_GOAL so the pool can't realistically run dry, even
-// after a bunch of "Didn't Watch" dismissals (see quiz-batch.tsx; those
-// never leave the pool, since nothing was actually judged).
+// How deep into the catalog to draw candidates from. The whole unrated
+// pool is sent to QuizBatch, which shows the next few at a time and
+// backfills every dismissal/rating from it, so this just needs to be
+// comfortably larger than anyone will rate in one sitting.
 const CANDIDATE_POOL_SIZE = 500;
 
 // Deterministic per-user "shuffle" key — gives each user a varied but
@@ -23,33 +22,12 @@ function shuffleKey(seed: string): number {
   return hash;
 }
 
-// Wraps around once `start` runs past the end of `items`, instead of
-// just truncating — the ?batch= param (see below) can grow arbitrarily
-// as someone keeps dismissing whole batches via "Haven't watched it",
-// so this is what keeps the quiz from ever dead-ending on a fixed pool.
-// Never repeats a title within the *same* returned batch, even if
-// `count` exceeds the pool size.
-function circularSlice<T>(items: T[], start: number, count: number): T[] {
-  if (items.length === 0) return [];
-  const result: T[] = [];
-  for (let i = 0; i < count && i < items.length; i++) {
-    result.push(items[(start + i) % items.length]);
-  }
-  return result;
-}
-
-export default async function QuizOnboardingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ batch?: string }>;
-}) {
+export default async function QuizOnboardingPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  const batchIndex = Math.max(0, Math.floor(Number((await searchParams).batch)) || 0);
 
   const { count: platformCount } = await supabase
     .from("user_platforms")
@@ -77,7 +55,6 @@ export default async function QuizOnboardingPage({
   const sortedUnrated = [...unrated].sort(
     (a, b) => shuffleKey(`${user.id}-${a.id}`) - shuffleKey(`${user.id}-${b.id}`)
   );
-  const batch = circularSlice(sortedUnrated, batchIndex * QUIZ_BATCH_SIZE, QUIZ_BATCH_SIZE);
 
   const progressPercent = Math.min(100, Math.round((ratedCount / RATING_GOAL) * 100));
   const goalReached = ratedCount >= RATING_GOAL;
@@ -118,12 +95,12 @@ export default async function QuizOnboardingPage({
           </div>
         </div>
 
-        {batch.length === 0 ? (
+        {sortedUnrated.length === 0 ? (
           <p className="mb-8 text-[14.5px] text-[var(--cg-text-2)]">
             You&apos;ve rated everything we have cached so far — hit the button below to continue.
           </p>
         ) : (
-          <QuizBatch batch={batch} batchIndex={batchIndex} />
+          <QuizBatch titles={sortedUnrated} />
         )}
 
         <div className="flex flex-wrap items-center gap-[18px]">
