@@ -42,7 +42,7 @@ function getClient(): Client | null {
  * rate limit, title not in their catalog), this returns null and the
  * caller falls back to exactly the pre-existing behavior. Called once
  * per title at ingest time (see ingestTitle in catalog.ts), not per
- * page view, to stay inside the free tier's 100 requests/day for as
+ * page view, to stay inside the free tier's 1,000 requests/month for as
  * long as possible — see README "Watch Now deep links" for the paid-
  * tier note.
  */

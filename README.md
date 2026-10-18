@@ -54,16 +54,15 @@ confident "watch this tonight" pick instead of an endless scroll.
      a lookup failing, this is simply skipped for that title/platform.
 
      **Currently running on their free tier** — no card required, but
-     capped at **100 requests/day**. That's fine for development and
-     demoing (this app was built and tested entirely on it), but it is
-     *not* sized for production: the daily catalog sync alone can churn
-     through titles fast enough to hit that ceiling, at which point
-     further lookups just silently return nothing for the rest of the
-     day (falling back to source 2 below, same as if the key were unset)
-     until it resets. **A paid tier is a real requirement before this
-     goes live for real users** — check current pricing at
-     [movieofthenight.com](https://www.movieofthenight.com/about/api/pricing)
-     or via their RapidAPI listing before launch.
+     capped at **1,000 requests/month**. That's fine for development and
+     demoing, but it is *not* sized for production: the daily catalog
+     sync looks up ~80 titles a day, so the quota runs out about 12 days
+     into each month. After that, further lookups just return nothing
+     until it resets (falling back to source 2 below, same as if the key
+     were unset; links already cached stay). **A paid tier is a real
+     requirement before this goes live for real users** — Starter is
+     $49/month for 25,000 requests (as of Oct 2026; check current
+     pricing in the movieofthenight.com developer dashboard).
 
   2. **Guessed search URL / homepage fallback**
      (`src/lib/platform-links.ts`) — used for a platform/title this
