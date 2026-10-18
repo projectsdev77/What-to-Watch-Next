@@ -30,9 +30,14 @@ confident "watch this tonight" pick instead of an endless scroll.
   deep link (there's no "open this exact title on Hulu" URL available
   without a paid feed), so "Watch Now" instead sends the user straight
   to their own matching platform instead of TMDB's combined "where to
-  watch" page. When a title is available on two or more of the user's
-  selected platforms, "Watch Now" shows a picker where each option
-  deep-links to *that* platform specifically (not a shared destination).
+  watch" page. The card shows one button per matching platform (e.g.
+  "▶ NETFLIX" and "▶ PARAMOUNT+" side by side), each linking to the
+  title on *that* service. Links are ordinary https URLs on the
+  provider's domain, which iOS/Android open in the provider's native app
+  when it's installed (universal links / app links) and in the browser
+  otherwise; desktop browsers just open the website. Only a real
+  title-page link (source 1 below) lands on the title itself — a search
+  or homepage fallback opens the app's search or home screen.
   Falls back to the old TMDB "where to watch" page (`titles.justwatch_link`,
   or `tmdbTitleUrl` for titles with no provider data) only when there's
   no matching platform to link to at all (unrestricted/"Other" mode).
