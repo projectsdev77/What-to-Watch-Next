@@ -19,7 +19,8 @@ function formatDuration(seconds: number) {
  * sooner on hover), with a progress bar and a pause button. Phones and
  * reduced-motion users only get the still, so nothing autoplays on mobile
  * data. Clicking anywhere opens the full trailer (sound and controls on) in
- * a modal over the page; closing it leaves the pick exactly as it was. */
+ * a modal over the page, continuing from where the preview had got to;
+ * closing it leaves the pick exactly as it was. */
 export function CgTrailerPreview({
   youtubeKey,
   title,
@@ -36,6 +37,11 @@ export function CgTrailerPreview({
   // Every preview starts muted; the Muted chip turns sound on and off.
   const [muted, setMuted] = useState(true);
   const [progress, setProgress] = useState<{ current: number; duration: number } | null>(null);
+  // Where the full trailer, or a resumed preview, starts — in whole
+  // seconds, frozen at the click so the player isn't reloaded as the
+  // preview keeps reporting its time.
+  const [fullStartAt, setFullStartAt] = useState(0);
+  const [previewStartAt, setPreviewStartAt] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -93,16 +99,32 @@ export function CgTrailerPreview({
     setMuted(next);
   }
 
+  /** Where the preview has got to, so the next player can pick up there
+   * instead of making the user rewatch it. Starts over when the preview
+   * hasn't played or is about to loop. */
+  function previewPosition() {
+    if (!progress || !started) return 0;
+    const nearEnd = progress.duration > 0 && progress.current > progress.duration - 3;
+    return nearEnd ? 0 : Math.floor(progress.current);
+  }
+
   function openFull() {
+    setFullStartAt(previewPosition());
     // The preview unloads while the full trailer is open and comes back
-    // muted when it closes.
+    // muted, from the start, when it closes.
+    setPreviewStartAt(0);
+    setProgress(null);
     setMuted(true);
     setOpen(true);
   }
 
   function togglePaused() {
-    // Resuming reloads the preview, which starts muted again.
-    if (paused) setMuted(true);
+    if (paused) {
+      // Resuming reloads the preview where it was paused, muted again.
+      setMuted(true);
+    } else {
+      setPreviewStartAt(previewPosition());
+    }
     setPaused(!paused);
   }
 
@@ -122,8 +144,8 @@ export function CgTrailerPreview({
 
   const playing = canAutoplay && started && !paused && !open;
   // loop needs playlist=<same key> to actually repeat a single video.
-  const previewSrc = `${EMBED_BASE}${youtubeKey}?autoplay=1&mute=1&loop=1&playlist=${youtubeKey}&controls=0&playsinline=1&modestbranding=1&rel=0&enablejsapi=1`;
-  const fullSrc = `${EMBED_BASE}${youtubeKey}?autoplay=1&playsinline=1&modestbranding=1&rel=0`;
+  const previewSrc = `${EMBED_BASE}${youtubeKey}?autoplay=1&mute=1&loop=1&playlist=${youtubeKey}&controls=0&playsinline=1&modestbranding=1&rel=0&enablejsapi=1&start=${previewStartAt}`;
+  const fullSrc = `${EMBED_BASE}${youtubeKey}?autoplay=1&playsinline=1&modestbranding=1&rel=0&start=${fullStartAt}`;
   const durationLabel = progress?.duration ? ` · ${formatDuration(progress.duration)}` : "";
   const percent = progress?.duration ? Math.min(100, (progress.current / progress.duration) * 100) : 0;
 
