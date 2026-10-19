@@ -8,7 +8,7 @@ import { parseMediaType, TMDB_BACKDROP_BASE_URL, TMDB_POSTER_BASE_URL } from "@/
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
 import { CgWatchNowButton } from "@/components/watch/cg-watch-now-button";
-import { CgWatchlistButton, CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
+import { CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
 import { CgWatchCheckIn } from "@/components/watch/cg-watch-check-in";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
@@ -55,10 +55,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     );
   }
 
-  const [result, { data: lists }] = await Promise.all([
-    getTonightsPick(user.id, mediaType),
-    supabase.from("watchlists").select("id, name").eq("user_id", user.id).order("created_at"),
-  ]);
+  const result = await getTonightsPick(user.id, mediaType);
 
   if (result.status !== "ok") {
     return <EmptyState status={result.status} />;
@@ -143,12 +140,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 matchingPlatforms={matchingPlatforms}
                 platformLinks={pick.platformLinks}
                 fallbackUrl={pick.watchUrl}
-              />
-              <CgWatchlistButton
-                titleId={pick.id}
-                redirectTo={redirectTo}
-                isWatchlisted={pick.isWatchlisted}
-                lists={lists ?? []}
               />
             </div>
             <div className="pt-0.5">
