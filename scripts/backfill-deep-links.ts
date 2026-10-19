@@ -10,8 +10,11 @@
  * titles first, since those are the most likely to be recommended. Stops
  * early if a lookup fails (usually the monthly quota running out).
  *
- * Run with: npm run backfill-deep-links            (100 titles)
- *           npm run backfill-deep-links -- 250     (custom batch size)
+ * Run with: npm run backfill-deep-links                  (100 titles)
+ *           npm run backfill-deep-links -- 250           (custom batch size)
+ *           npm run backfill-deep-links -- 250 --recheck (re-run titles
+ *             already looked up that still have a platform with no link —
+ *             e.g. ones looked up before the lookup decided platforms)
  *
  * Needs SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_URL and
  * STREAMING_AVAILABILITY_API_KEY in .env.local, pointed at production.
@@ -71,13 +74,22 @@ async function main() {
     console.error("STREAMING_AVAILABILITY_API_KEY isn't set in .env.local — nothing to look up with.");
     process.exit(1);
   }
-  const batchSize = Number(process.argv[2]) || DEFAULT_BATCH;
+  const args = process.argv.slice(2);
+  const recheck = args.includes("--recheck");
+  const batchSize = Number(args.find((arg) => /^\d+$/.test(arg))) || DEFAULT_BATCH;
 
-  // A title still needs a lookup if any of its platforms was never looked up (null).
+  // Normally: titles with a platform never looked up (null). With
+  // --recheck: titles already looked up that still have a platform with
+  // no link ("") — the ones an earlier, platform-agnostic lookup left
+  // with a mismatch.
   const all = await loadAvailability();
-  const pending = [...all.entries()].filter(([, t]) => [...t.stored.values()].some((link) => link === null));
+  const needsLookup = (links: (string | null)[]) =>
+    recheck ? !links.includes(null) && links.includes("") : links.includes(null);
+  const pending = [...all.entries()].filter(([, t]) => needsLookup([...t.stored.values()]));
   const queue = pending.sort((a, b) => b[1].voteAverage - a[1].voteAverage).slice(0, batchSize);
-  console.log(`${pending.length} titles still need a lookup. Looking up ${queue.length} (1 API request each)...`);
+  console.log(
+    `${pending.length} titles ${recheck ? "to re-check" : "still need a lookup"}. Looking up ${queue.length} (1 API request each)...`
+  );
 
   let looked = 0;
   let linksFound = 0;
