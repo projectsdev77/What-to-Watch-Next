@@ -65,6 +65,29 @@ describe("getDeepLinksByPlatform", () => {
     expect(getShowMock).toHaveBeenCalledWith({ id: "movie/593", country: "us" });
   });
 
+  it("uses a free-with-ads option when there's no subscription one, but prefers subscription", async () => {
+    vi.stubEnv("STREAMING_AVAILABILITY_API_KEY", "test-key");
+    getShowMock.mockResolvedValue({
+      streamingOptions: {
+        us: [
+          streamingOption("peacock", "free", "https://www.peacocktv.com/watch/free-only"),
+          streamingOption("prime", "free", "https://www.amazon.com/free-with-ads"),
+          streamingOption("prime", "subscription", "https://www.amazon.com/included-with-prime"),
+          streamingOption("hulu", "rent", "https://www.hulu.com/rent"),
+          streamingOption("netflix", "addon", "https://www.netflix.com/addon"),
+        ],
+      },
+    });
+    const { getDeepLinksByPlatform } = await import("./streaming-availability");
+
+    const result = await getDeepLinksByPlatform("movie", 593);
+
+    expect(result).toEqual({
+      Peacock: "https://www.peacocktv.com/watch/free-only",
+      "Prime Video": "https://www.amazon.com/included-with-prime",
+    });
+  });
+
   it("keeps only the first subscription match per platform", async () => {
     vi.stubEnv("STREAMING_AVAILABILITY_API_KEY", "test-key");
     getShowMock.mockResolvedValue({

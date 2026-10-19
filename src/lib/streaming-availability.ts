@@ -59,14 +59,19 @@ export async function getDeepLinksByPlatform(
     const show = await client.showsApi.getShow({ id: `${mediaType}/${tmdbId}`, country });
     const options = show.streamingOptions[country] ?? [];
 
+    // Only options the user can watch without paying extra: the
+    // subscription they already have, or free-with-ads on that service.
+    // Buy/rent/addon (e.g. a paid channel inside Prime Video) are skipped.
+    // A subscription link beats a free one for the same service (no ads);
+    // otherwise the first (highest-priority) match wins.
     const links: Partial<Record<StreamingPlatform, string>> = {};
-    for (const option of options) {
-      // Skip buy/rent/addon options — Watch Now should land the user on
-      // the subscription they already pay for, not a one-off purchase.
-      if (option.type !== "subscription") continue;
-      const platform = SERVICE_ID_TO_PLATFORM[option.service.id];
-      if (!platform || links[platform]) continue; // first (highest-priority) match wins per platform
-      links[platform] = option.link;
+    for (const type of ["subscription", "free"] as const) {
+      for (const option of options) {
+        if (option.type !== type) continue;
+        const platform = SERVICE_ID_TO_PLATFORM[option.service.id];
+        if (!platform || links[platform]) continue;
+        links[platform] = option.link;
+      }
     }
     return links;
   } catch (err) {
