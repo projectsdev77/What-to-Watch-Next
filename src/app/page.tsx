@@ -1,14 +1,12 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getTonightsPick, type CandidateStatus } from "@/lib/recommendations";
-import { parseMediaType, TMDB_BACKDROP_BASE_URL, TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
+import { parseMediaType } from "@/lib/tmdb";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
-import { CgWatchNowButton } from "@/components/watch/cg-watch-now-button";
-import { CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
+import { CgTonightsPickHero } from "@/components/watch/cg-tonights-pick-hero";
 import { CgWatchCheckIn } from "@/components/watch/cg-watch-check-in";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
@@ -65,94 +63,27 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const matchingPlatforms = result.unrestricted ? [] : pick.platforms;
 
   return (
-    <div className="cg-screen relative min-h-screen overflow-hidden bg-[var(--cg-ground)] font-sans text-[var(--cg-text-1)]">
-      {pick.posterPath && (
-        <div className="absolute inset-x-0 top-0 h-[76%]">
-          <Image
-            src={`${TMDB_BACKDROP_BASE_URL}${pick.posterPath}`}
-            alt=""
-            aria-hidden
-            fill
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
-      )}
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,.4)_0%,rgba(6,11,20,.76)_48%,#060B14_78%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,11,20,.7)_0%,transparent_60%)]" />
-
-      <div className="relative mx-auto flex max-w-[1280px] flex-col gap-5 p-[22px] pb-16">
-        <CgNavPill active="/" />
-        <CgMediaTypeTabs active={mediaType} basePath="/" />
-
-        {result.unrestricted && (
-          <div className="cg-pane px-4 py-3 text-[13px] text-[var(--cg-text-2)]">
-            You haven&apos;t picked a streaming service in{" "}
-            <Link href="/settings" className="font-semibold text-[var(--cg-accent)] underline">
-              Settings
-            </Link>
-            , so this pick could be from any platform — it might not be one you can actually watch on.
-          </div>
-        )}
-
-        <div className="flex flex-col gap-[22px] px-2 py-6 sm:flex-row sm:items-end sm:gap-[34px] sm:py-9">
-          <div className="relative aspect-[2/3] w-[190px] shrink-0 overflow-hidden rounded-[var(--cg-r-poster)] shadow-[0_28px_60px_rgba(2,6,14,.75)] sm:w-[210px]">
-            {pick.posterPath && (
-              <Image
-                src={`${TMDB_POSTER_BASE_URL}${pick.posterPath}`}
-                alt={pick.title}
-                fill
-                sizes="210px"
-                className="object-cover"
-              />
-            )}
-          </div>
-
-          <div className="flex min-w-0 flex-1 flex-col gap-[17px] sm:max-w-[58%]">
-            <span className="text-[11.5px] font-bold tracking-[.2em] text-[var(--cg-accent)]">TONIGHT&apos;S PICK</span>
-            <h1 className="font-heading text-[38px] leading-[1] font-bold tracking-[-.042em] text-balance sm:text-[58px]">
-              {pick.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-[9px]">
-              <span className="rounded-full border border-white/20 bg-white/12 px-[15px] py-[7px] text-[12.5px] font-semibold backdrop-blur-[20px]">
-                {pick.matchPercent}% match
-              </span>
-              {pick.platforms.map((platform) => (
-                <span
-                  key={platform}
-                  className="rounded-full border border-white/20 bg-white/12 px-[15px] py-[7px] text-[12.5px] font-semibold backdrop-blur-[20px]"
-                >
-                  {platform}
-                </span>
-              ))}
+    <CgTonightsPickHero
+      pick={pick}
+      unrestricted={result.unrestricted}
+      matchingPlatforms={matchingPlatforms}
+      redirectTo={redirectTo}
+      header={
+        <>
+          <CgNavPill active="/" />
+          <CgMediaTypeTabs active={mediaType} basePath="/" />
+          {result.unrestricted && (
+            <div className="cg-pane px-4 py-3 text-[13px] text-[var(--cg-text-2)]">
+              You haven&apos;t picked a streaming service in{" "}
+              <Link href="/settings" className="font-semibold text-[var(--cg-accent)] underline">
+                Settings
+              </Link>
+              , so this pick could be from any platform — it might not be one you can actually watch on.
             </div>
-            {pick.overview && (
-              <p className="line-clamp-4 max-w-[52ch] text-[14.5px] leading-[1.6] text-[var(--cg-text-2)]">
-                {pick.overview}
-              </p>
-            )}
-            <p className="max-w-[44ch] text-[16px] leading-[1.6] font-medium text-[var(--cg-text-1)]">{pick.why}</p>
-            <div className="flex flex-wrap gap-[11px] pt-0.5">
-              <CgWatchNowButton
-                title={pick.title}
-                titleId={pick.id}
-                redirectTo={redirectTo}
-                matchingPlatforms={matchingPlatforms}
-                platformLinks={pick.platformLinks}
-                fallbackUrl={pick.watchUrl}
-              />
-            </div>
-            <div className="pt-0.5">
-              <CgFeedbackActions titleId={pick.id} redirectTo={redirectTo} />
-            </div>
-          </div>
-        </div>
-
-        <span className="px-1 pt-1 text-[12px] text-[var(--cg-text-legal)]">
-          Streaming availability data provided by JustWatch. © 2026 What To Watch Next.
-        </span>
-      </div>
-    </div>
+          )}
+        </>
+      }
+    />
   );
 }
 
