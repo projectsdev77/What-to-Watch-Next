@@ -1,8 +1,10 @@
 /**
- * Fills in real Watch Now deep links (Streaming Availability API) for
- * titles already in the catalog. Normal ingestion only looks links up
- * when a title is added or refreshed, so titles that existed before
+ * Runs the Streaming Availability lookup for titles already in the
+ * catalog that haven't had one yet. Normal ingestion only looks a title
+ * up when it's added or refreshed, so titles that existed before
  * STREAMING_AVAILABILITY_API_KEY was set would otherwise wait a long time.
+ * Each lookup updates both which platforms the title is on and their real
+ * links — the same rule as ingestion (see resolveAvailability).
  *
  * Each title costs one API request, so it runs in batches — highest-rated
  * titles first, since those are the most likely to be recommended. Stops
@@ -19,17 +21,49 @@ loadEnvConfig(process.cwd());
 
 import { createAdminClient } from "../src/lib/supabase/admin";
 import { getDeepLinksByPlatform } from "../src/lib/streaming-availability";
-import { DEFAULT_REGION, type StreamingPlatform } from "../src/lib/platforms";
+import { resolveAvailability } from "../src/lib/availability";
+import { saveAvailability } from "../src/lib/catalog";
+import { DEFAULT_REGION } from "../src/lib/platforms";
 import type { MediaType } from "../src/lib/tmdb";
 
 const DEFAULT_BATCH = 100;
+const PAGE_SIZE = 1000; // PostgREST's default max rows per request
 
-interface PendingTitle {
+interface CatalogTitle {
   tmdbId: number;
   mediaType: MediaType;
   title: string;
   voteAverage: number;
-  platforms: string[];
+  stored: Map<string, string | null>;
+}
+
+async function loadAvailability() {
+  const admin = createAdminClient();
+  const titles = new Map<number, CatalogTitle>();
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from("title_availability")
+      .select("title_id, platform_name, deep_link, titles(tmdb_id, media_type, title, vote_average)")
+      .eq("region", DEFAULT_REGION)
+      .order("id")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`Failed to load availability: ${error.message}`);
+    for (const row of data ?? []) {
+      const t = row.titles as unknown as { tmdb_id: number; media_type: MediaType; title: string; vote_average: number | null } | null;
+      if (!t) continue;
+      const entry = titles.get(row.title_id as number) ?? {
+        tmdbId: t.tmdb_id,
+        mediaType: t.media_type,
+        title: t.title,
+        voteAverage: t.vote_average ?? 0,
+        stored: new Map(),
+      };
+      entry.stored.set(row.platform_name as string, row.deep_link as string | null);
+      titles.set(row.title_id as number, entry);
+    }
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+  return titles;
 }
 
 async function main() {
@@ -38,33 +72,12 @@ async function main() {
     process.exit(1);
   }
   const batchSize = Number(process.argv[2]) || DEFAULT_BATCH;
-  const admin = createAdminClient();
 
-  // null = never looked up ("" means looked up, nothing available).
-  const { data: rows, error } = await admin
-    .from("title_availability")
-    .select("title_id, platform_name, titles(tmdb_id, media_type, title, vote_average)")
-    .eq("region", DEFAULT_REGION)
-    .is("deep_link", null);
-  if (error) throw new Error(`Failed to load titles needing links: ${error.message}`);
-
-  const pending = new Map<number, PendingTitle>();
-  for (const row of rows ?? []) {
-    const t = row.titles as unknown as { tmdb_id: number; media_type: MediaType; title: string; vote_average: number | null } | null;
-    if (!t) continue;
-    const entry = pending.get(row.title_id as number) ?? {
-      tmdbId: t.tmdb_id,
-      mediaType: t.media_type,
-      title: t.title,
-      voteAverage: t.vote_average ?? 0,
-      platforms: [],
-    };
-    entry.platforms.push(row.platform_name as string);
-    pending.set(row.title_id as number, entry);
-  }
-
-  const queue = [...pending.entries()].sort((a, b) => b[1].voteAverage - a[1].voteAverage).slice(0, batchSize);
-  console.log(`${pending.size} titles still need a link. Looking up ${queue.length} (1 API request each)...`);
+  // A title still needs a lookup if any of its platforms was never looked up (null).
+  const all = await loadAvailability();
+  const pending = [...all.entries()].filter(([, t]) => [...t.stored.values()].some((link) => link === null));
+  const queue = pending.sort((a, b) => b[1].voteAverage - a[1].voteAverage).slice(0, batchSize);
+  console.log(`${pending.length} titles still need a lookup. Looking up ${queue.length} (1 API request each)...`);
 
   let looked = 0;
   let linksFound = 0;
@@ -74,23 +87,16 @@ async function main() {
       console.error("Lookup failed — most likely the monthly quota is used up. Stopping; run again after it resets.");
       break;
     }
-    for (const platform of t.platforms) {
-      const link = links[platform as StreamingPlatform] ?? "";
-      const { error: updateError } = await admin
-        .from("title_availability")
-        .update({ deep_link: link })
-        .eq("title_id", titleId)
-        .eq("region", DEFAULT_REGION)
-        .eq("platform_name", platform);
-      if (updateError) console.error(`  Failed to save ${t.title} / ${platform}: ${updateError.message}`);
-      else if (link) linksFound += 1;
-    }
+    const rows = resolveAvailability([...t.stored.keys()], links, t.stored);
+    const saveError = await saveAvailability(titleId, rows, [...t.stored.keys()]);
+    if (saveError) console.error(`  Failed to save ${t.title}: ${saveError}`);
+    else linksFound += rows.filter((row) => row.deepLink).length;
     looked += 1;
     if (looked % 20 === 0) console.log(`  ${looked}/${queue.length}`);
   }
 
   console.log(
-    `Done. Looked up ${looked} titles, saved ${linksFound} real links. ${pending.size - looked} titles still to go.`
+    `Done. Looked up ${looked} titles, saved ${linksFound} real links. ${pending.length - looked} titles still to go.`
   );
 }
 

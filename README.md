@@ -72,6 +72,12 @@ confident "watch this tonight" pick instead of an endless scroll.
      production. `deep_link = ''` means "looked up, nothing available";
      `null` means "not looked up yet".
 
+     When a lookup finds the title on any of our platforms, it also
+     decides *which* platforms the title is listed on (replacing TMDB's
+     list), so every platform button has a real link. If it finds none of
+     ours, TMDB's list is kept; with no lookup, a stored earlier lookup is
+     kept. See `resolveAvailability` in `src/lib/availability.ts`.
+
   2. **Guessed search URL / homepage fallback**
      (`src/lib/platform-links.ts`) — used for a platform/title this
      project has no confirmed API-sourced link for. Only **Netflix**
