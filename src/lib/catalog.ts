@@ -108,7 +108,12 @@ export async function ingestTitle(mediaType: MediaType, tmdbId: number): Promise
           title_id: title.id,
           region: DEFAULT_REGION,
           platform_name: platformName,
-          deep_link: deepLinks?.[platformName] ?? existingDeepLinkByPlatform.get(platformName) ?? null,
+          // "" = looked up, no link for this platform (so it isn't re-queried
+          // forever); null = never looked up. The UI treats both as "use the
+          // fallback link" — see scripts/backfill-deep-links.ts.
+          deep_link: deepLinks
+            ? (deepLinks[platformName] ?? "")
+            : (existingDeepLinkByPlatform.get(platformName) ?? null),
           cached_at: new Date().toISOString(),
         })),
         { onConflict: "title_id,region,platform_name" }

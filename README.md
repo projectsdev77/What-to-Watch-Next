@@ -64,6 +64,14 @@ confident "watch this tonight" pick instead of an endless scroll.
      $49/month for 25,000 requests (as of Oct 2026; check current
      pricing in the movieofthenight.com developer dashboard).
 
+     Titles already in the catalog before the key was set only get links
+     when they're next re-ingested, which can take a long time. To fill
+     them in now, run `npm run backfill-deep-links` (100 titles per run,
+     highest-rated first; `npm run backfill-deep-links -- 250` for a
+     different batch size) from a machine whose `.env.local` points at
+     production. `deep_link = ''` means "looked up, nothing available";
+     `null` means "not looked up yet".
+
   2. **Guessed search URL / homepage fallback**
      (`src/lib/platform-links.ts`) — used for a platform/title this
      project has no confirmed API-sourced link for. Only **Netflix**

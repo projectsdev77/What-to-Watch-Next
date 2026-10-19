@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "seed": "tsx scripts/seed-titles.ts"
+    "seed": "tsx scripts/seed-titles.ts",
+    "backfill-deep-links": "tsx scripts/backfill-deep-links.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
