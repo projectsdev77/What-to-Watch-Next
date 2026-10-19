@@ -33,6 +33,8 @@ export function CgTrailerPreview({
   const [canAutoplay, setCanAutoplay] = useState(false);
   const [started, setStarted] = useState(false);
   const [paused, setPaused] = useState(false);
+  // Every preview starts muted; the Muted chip turns sound on and off.
+  const [muted, setMuted] = useState(true);
   const [progress, setProgress] = useState<{ current: number; duration: number } | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -81,6 +83,28 @@ export function CgTrailerPreview({
   const startListening = useCallback(() => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: "wwn-trailer" }), EMBED_ORIGIN);
   }, []);
+
+  function toggleSound() {
+    const next = !muted;
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: "command", func: next ? "mute" : "unMute", args: [] }),
+      EMBED_ORIGIN
+    );
+    setMuted(next);
+  }
+
+  function openFull() {
+    // The preview unloads while the full trailer is open and comes back
+    // muted when it closes.
+    setMuted(true);
+    setOpen(true);
+  }
+
+  function togglePaused() {
+    // Resuming reloads the preview, which starts muted again.
+    if (paused) setMuted(true);
+    setPaused(!paused);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -132,7 +156,7 @@ export function CgTrailerPreview({
         )}
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={openFull}
           aria-label={`Play the ${title} trailer`}
           className="absolute inset-0 transition-colors hover:bg-black/10"
         />
@@ -150,13 +174,19 @@ export function CgTrailerPreview({
           {canAutoplay && started && (
             <div className="pointer-events-auto relative z-10 ml-auto flex items-center gap-[6px]">
               {!paused && (
-                <span className="rounded-full border border-white/22 bg-[rgba(6,11,20,.55)] px-[10px] py-[6px] text-[11px] font-semibold">
-                  Muted
-                </span>
+                <button
+                  type="button"
+                  onClick={toggleSound}
+                  aria-pressed={!muted}
+                  aria-label={muted ? "Turn the preview's sound on" : "Mute the preview"}
+                  className="rounded-full border border-white/22 bg-[rgba(6,11,20,.55)] px-[10px] py-[6px] text-[11px] font-semibold transition-transform hover:bg-[rgba(6,11,20,.75)] active:scale-95"
+                >
+                  {muted ? "🔇 Muted" : "🔊 Sound on"}
+                </button>
               )}
               <button
                 type="button"
-                onClick={() => setPaused((p) => !p)}
+                onClick={togglePaused}
                 aria-label={paused ? "Play the preview" : "Pause the preview"}
                 className="flex h-[28px] w-[28px] items-center justify-center rounded-full border border-white/22 bg-[rgba(6,11,20,.55)] text-[10px] transition-transform active:scale-90"
               >
