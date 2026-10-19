@@ -49,6 +49,7 @@
   --font-sans: var(--font-instrument-sans);
   --font-heading: var(--font-archivo);
   --font-wordmark: var(--font-archivo-black);
+  --font-display: var(--font-anton);
 }
 
 /*
@@ -179,6 +180,44 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-\[quiz-card-in_0\.4s_ease-out\] {
+    animation: none;
+  }
+}
+
+/* Tonight's Pick: when the next pick arrives, its key art crossfades in and
+ * the content block slides up into place (both keyed on the pick, so they
+ * replay for every new pick). */
+@keyframes cg-art-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cg-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cg-art-in {
+  animation: cg-art-in 0.4s ease-out;
+}
+
+.cg-content-in {
+  animation: cg-content-in 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cg-art-in,
+  .cg-content-in {
     animation: none;
   }
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Archivo_Black, Instrument_Sans } from "next/font/google";
+import { Anton, Archivo, Archivo_Black, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -14,9 +14,17 @@ const archivoBlack = Archivo_Black({
   subsets: ["latin"],
 });
 
+// Tonight's Pick title only — a condensed poster face for the huge,
+// stacked one-sheet title.
+const anton = Anton({
+  variable: "--font-anton",
+  weight: "400",
+  subsets: ["latin"],
+});
+
 const instrumentSans = Instrument_Sans({
   variable: "--font-instrument-sans",
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
 
@@ -36,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${archivoBlack.variable} ${instrumentSans.variable} h-full antialiased`}
+      className={`${anton.variable} ${archivo.variable} ${archivoBlack.variable} ${instrumentSans.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">{children}</body>
     </html>

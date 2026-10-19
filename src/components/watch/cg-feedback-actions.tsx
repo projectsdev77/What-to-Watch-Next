@@ -73,9 +73,21 @@ export function CgWatchlistButton({
   );
 }
 
-export function CgFeedbackActions({ titleId, redirectTo }: { titleId: number; redirectTo: string }) {
-  const cls =
-    "rounded-full border border-white/15 bg-white/7 px-[22px] py-[11px] text-[12.5px] text-[var(--cg-text-1)]";
+/** `quiet`: Tonight's Pick hero's smaller, demoted pills; its "Watched it
+ * already" menu opens upward, since the pills sit at the bottom of the
+ * screen. */
+export function CgFeedbackActions({
+  titleId,
+  redirectTo,
+  quiet = false,
+}: {
+  titleId: number;
+  redirectTo: string;
+  quiet?: boolean;
+}) {
+  const cls = quiet
+    ? "rounded-full border border-white/18 bg-[rgba(6,11,20,.3)] px-[18px] py-[10px] text-[13px] text-[rgba(234,242,250,.88)] backdrop-blur-[20px] hover:text-[var(--cg-text-1)]"
+    : "rounded-full border border-white/15 bg-white/7 px-[22px] py-[11px] text-[12.5px] text-[var(--cg-text-1)]";
   return (
     <div className="flex flex-wrap items-center gap-2">
       <form action={submitPickFeedbackAction}>
@@ -98,7 +110,9 @@ export function CgFeedbackActions({ titleId, redirectTo }: { titleId: number; re
         <summary className={cls + " cursor-pointer list-none [&::-webkit-details-marker]:hidden"}>
           Watched it already
         </summary>
-        <div className="cg-pane absolute top-[calc(100%+6px)] left-0 z-10 flex min-w-[170px] flex-col gap-1 p-2">
+        <div
+          className={`cg-pane absolute left-0 z-10 flex min-w-[170px] flex-col gap-1 p-2 ${quiet ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]"}`}
+        >
           <span className="px-2 pt-1 pb-1.5 text-[11px] font-bold tracking-[.1em] text-[var(--cg-text-3)]">
             DID YOU LIKE IT?
           </span>

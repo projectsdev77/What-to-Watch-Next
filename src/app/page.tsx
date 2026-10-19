@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getTonightsPick, type CandidateStatus } from "@/lib/recommendations";
-import { getTrailerKey, parseMediaType } from "@/lib/tmdb";
+import { getPickMedia, parseMediaType } from "@/lib/tmdb";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
-import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
 import { CgTonightsPickHero } from "@/components/watch/cg-tonights-pick-hero";
 import { CgWatchCheckIn } from "@/components/watch/cg-watch-check-in";
 
@@ -60,30 +59,27 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   }
 
   const pick = result.pick;
-  const trailerKey = await getTrailerKey(pick.mediaType, pick.tmdbId);
+  const media = await getPickMedia(pick.mediaType, pick.tmdbId);
   const matchingPlatforms = result.unrestricted ? [] : pick.platforms;
 
   return (
     <CgTonightsPickHero
       pick={pick}
+      media={media}
+      mediaType={mediaType}
       unrestricted={result.unrestricted}
       matchingPlatforms={matchingPlatforms}
       redirectTo={redirectTo}
-      trailerKey={trailerKey}
-      header={
-        <>
-          <CgNavPill active="/" />
-          <CgMediaTypeTabs active={mediaType} basePath="/" />
-          {result.unrestricted && (
-            <div className="cg-pane px-4 py-3 text-[13px] text-[var(--cg-text-2)]">
-              You haven&apos;t picked a streaming service in{" "}
-              <Link href="/settings" className="font-semibold text-[var(--cg-accent)] underline">
-                Settings
-              </Link>
-              , so this pick could be from any platform — it might not be one you can actually watch on.
-            </div>
-          )}
-        </>
+      banner={
+        result.unrestricted && (
+          <div className="cg-pane px-4 py-3 text-[13px] text-[var(--cg-text-2)]">
+            You haven&apos;t picked a streaming service in{" "}
+            <Link href="/settings" className="font-semibold text-[var(--cg-accent)] underline">
+              Settings
+            </Link>
+            , so this pick could be from any platform — it might not be one you can actually watch on.
+          </div>
+        )
       }
     />
   );

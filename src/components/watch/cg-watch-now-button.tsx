@@ -7,6 +7,13 @@ import { platformDeepLink } from "@/lib/platform-links";
 const BUTTON_CLASS =
   "rounded-full bg-[var(--cg-primary)] px-[30px] py-[16px] text-[13.5px] font-bold tracking-[.08em] text-[var(--cg-on-primary)] shadow-[0_18px_38px_rgba(2,6,14,.55)] transition-transform active:scale-95";
 
+// Tonight's Pick hero: one white primary pill, outline pills for the rest.
+// Full width and stacked on phones.
+const HERO_BASE =
+  "w-full rounded-full py-[19px] text-center text-[14px] font-bold tracking-[.12em] transition-transform active:scale-95 sm:w-auto";
+const HERO_PRIMARY_CLASS = `${HERO_BASE} bg-[var(--cg-primary)] px-[40px] text-[var(--cg-on-primary)] shadow-[0_18px_38px_rgba(2,6,14,.55)]`;
+const HERO_SECONDARY_CLASS = `${HERO_BASE} border-[1.5px] border-[rgba(234,242,250,.7)] bg-[rgba(6,11,20,.35)] px-[30px] text-[var(--cg-text-1)] backdrop-blur-[20px]`;
+
 /** One "watch" button per matching platform (e.g. "▶ NETFLIX" and
  * "▶ PARAMOUNT+" side by side), each linking straight to the title on
  * that service. Clicking marks the title "watched" (opinion pending,
@@ -21,7 +28,10 @@ const BUTTON_CLASS =
  * Availability API, cached at ingest — see streaming-availability.ts),
  * falling back to platform-links.ts's search/homepage link, and to
  * fallbackUrl only when there's no matching platform at all
- * (unrestricted mode, or "Other"). */
+ * (unrestricted mode, or "Other").
+ *
+ * `variant="hero"`: the first platform (in the user's own order) is the
+ * one white "▶ WATCH ON NETFLIX" button; the others are outline pills. */
 export function CgWatchNowButton({
   title,
   titleId,
@@ -29,6 +39,7 @@ export function CgWatchNowButton({
   matchingPlatforms,
   platformLinks,
   fallbackUrl,
+  variant = "default",
 }: {
   title: string;
   titleId: number;
@@ -36,7 +47,9 @@ export function CgWatchNowButton({
   matchingPlatforms: string[];
   platformLinks?: Record<string, string | null>;
   fallbackUrl: string;
+  variant?: "default" | "hero";
 }) {
+  const hero = variant === "hero";
   const router = useRouter();
 
   function recordWatch() {
@@ -49,7 +62,7 @@ export function CgWatchNowButton({
 
   if (deepLinks.length === 0) {
     return (
-      <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" onClick={recordWatch} className={BUTTON_CLASS}>
+      <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" onClick={recordWatch} className={hero ? HERO_PRIMARY_CLASS : BUTTON_CLASS}>
         ▶ WATCH NOW
       </a>
     );
@@ -57,7 +70,7 @@ export function CgWatchNowButton({
 
   return (
     <>
-      {deepLinks.map(({ platform, url }) => (
+      {deepLinks.map(({ platform, url }, i) => (
         <a
           key={platform}
           href={url}
@@ -65,9 +78,9 @@ export function CgWatchNowButton({
           rel="noopener noreferrer"
           onClick={recordWatch}
           aria-label={`Watch ${title} on ${platform}`}
-          className={BUTTON_CLASS}
+          className={hero ? (i === 0 ? HERO_PRIMARY_CLASS : HERO_SECONDARY_CLASS) : BUTTON_CLASS}
         >
-          ▶ {platform.toUpperCase()}
+          ▶ {hero && i === 0 ? `WATCH ON ${platform.toUpperCase()}` : platform.toUpperCase()}
         </a>
       ))}
     </>

@@ -195,19 +195,34 @@ async function isEmbeddable(youtubeKey: string): Promise<boolean> {
   }
 }
 
-/** The title's best embeddable YouTube trailer key, or null if it has none
- * or the lookup fails — a trailer is a nice-to-have, so a TMDB hiccup
- * here must never break the page. */
-export async function getTrailerKey(mediaType: MediaType, id: number): Promise<string | null> {
+export interface PickMedia {
+  /** Wide 16:9 still for the Tonight's Pick hero. */
+  backdropPath: string | null;
+  /** Best embeddable YouTube trailer key. */
+  trailerKey: string | null;
+}
+
+/** The hero's backdrop and trailer for one title, in a single TMDB request.
+ * The catalog only stores posters, so these are looked up when the pick is
+ * shown. Both are nice-to-haves: any failure gives nulls instead of
+ * breaking the page. */
+export async function getPickMedia(mediaType: MediaType, id: number): Promise<PickMedia> {
   try {
-    const { results } = await tmdbFetch<{ results: TmdbVideo[] }>(`/${mediaType}/${id}/videos`);
-    for (const key of rankTrailerKeys(results).slice(0, MAX_TRAILERS_CHECKED)) {
-      if (await isEmbeddable(key)) return key;
+    const details = await tmdbFetch<{ backdrop_path: string | null; videos?: { results: TmdbVideo[] } }>(
+      `/${mediaType}/${id}`,
+      { append_to_response: "videos" }
+    );
+    let trailerKey: string | null = null;
+    for (const key of rankTrailerKeys(details.videos?.results ?? []).slice(0, MAX_TRAILERS_CHECKED)) {
+      if (await isEmbeddable(key)) {
+        trailerKey = key;
+        break;
+      }
     }
-    return null;
+    return { backdropPath: details.backdrop_path ?? null, trailerKey };
   } catch (err) {
-    console.error(`Trailer lookup failed for ${mediaType}/${id}:`, err instanceof Error ? err.message : err);
-    return null;
+    console.error(`Media lookup failed for ${mediaType}/${id}:`, err instanceof Error ? err.message : err);
+    return { backdropPath: null, trailerKey: null };
   }
 }
 

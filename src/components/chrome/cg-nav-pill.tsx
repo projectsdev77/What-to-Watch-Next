@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { CgNavPillClient, type NavHref } from "@/components/chrome/cg-nav-pill-client";
 
@@ -5,11 +6,19 @@ import { CgNavPillClient, type NavHref } from "@/components/chrome/cg-nav-pill-c
  * so it can look up the signed-in user directly; the actual markup
  * (including the mobile hamburger toggle) lives in the client half,
  * since that needs interactive state a Server Component can't hold. */
-export async function CgNavPill({ active }: { active?: NavHref }) {
+export async function CgNavPill({
+  active,
+  immersive,
+  slot,
+}: {
+  active?: NavHref;
+  immersive?: boolean;
+  slot?: ReactNode;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <CgNavPillClient active={active} userEmail={user?.email ?? null} />;
+  return <CgNavPillClient active={active} userEmail={user?.email ?? null} immersive={immersive} slot={slot} />;
 }

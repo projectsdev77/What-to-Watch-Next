@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getTrailerKey, parseMediaType, pickTrailerKey, type TmdbVideo } from "./tmdb";
+import { getPickMedia, parseMediaType, pickTrailerKey, type TmdbVideo } from "./tmdb";
 
 describe("parseMediaType", () => {
   it("reads 'tv' as tv", () => {
@@ -39,7 +39,7 @@ describe("pickTrailerKey", () => {
   });
 });
 
-describe("getTrailerKey", () => {
+describe("getPickMedia", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
@@ -50,14 +50,15 @@ describe("getTrailerKey", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url.includes("/videos")) {
+        if (url.includes("api.themoviedb.org")) {
           return {
             ok: true,
             json: async () => ({
-              results: [
+              backdrop_path: "/wide.jpg",
+              videos: { results: [
                 { key: "blocked", site: "YouTube", type: "Trailer", official: true, iso_639_1: "en" },
                 { key: "teaser", site: "YouTube", type: "Teaser", official: true, iso_639_1: "en" },
-              ],
+              ] },
             }),
           } as Response;
         }
@@ -65,13 +66,13 @@ describe("getTrailerKey", () => {
       })
     );
 
-    expect(await getTrailerKey("movie", 1)).toBe("teaser");
+    expect(await getPickMedia("movie", 1)).toEqual({ backdropPath: "/wide.jpg", trailerKey: "teaser" });
   });
 
-  it("returns null instead of throwing when TMDB fails", async () => {
+  it("returns nulls instead of throwing when TMDB fails", async () => {
     vi.stubEnv("TMDB_API_KEY", "test-key");
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 404 }) as Response));
 
-    expect(await getTrailerKey("movie", 1)).toBeNull();
+    expect(await getPickMedia("movie", 1)).toEqual({ backdropPath: null, trailerKey: null });
   });
 });
