@@ -14,6 +14,29 @@ function formatDuration(seconds: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** A small white speaker, crossed out when muted. */
+function SpeakerIcon({ muted }: { muted: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      className="h-[14px] w-[14px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />
+      {muted ? (
+        <path d="m16 9 5 6m0-6-5 6" />
+      ) : (
+        <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+      )}
+    </svg>
+  );
+}
+
 /** Tonight's Pick trailer card: a 16:9 still with a "Watch trailer" bar.
  * On desktop it starts a muted, looping preview after 1.5s on the page (or
  * sooner on hover), with a progress bar and a pause button. Phones and
@@ -201,9 +224,9 @@ export function CgTrailerPreview({
                   onClick={toggleSound}
                   aria-pressed={!muted}
                   aria-label={muted ? "Turn the preview's sound on" : "Mute the preview"}
-                  className="rounded-full border border-white/22 bg-[rgba(6,11,20,.55)] px-[10px] py-[6px] text-[11px] font-semibold transition-transform hover:bg-[rgba(6,11,20,.75)] active:scale-95"
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded-full border border-white/22 bg-[rgba(6,11,20,.55)] transition-transform active:scale-90"
                 >
-                  {muted ? "🔇 Muted" : "🔊 Sound on"}
+                  <SpeakerIcon muted={muted} />
                 </button>
               )}
               <button
