@@ -47,7 +47,7 @@ confident "watch this tonight" pick instead of an endless scroll.
   1. **Streaming Availability API** (movieofthenight.com,
      `src/lib/streaming-availability.ts`) — a real, confirmed deep link
      straight to the title's own page on Netflix, Prime Video, Disney+,
-     Apple TV+, Max, Hulu, or Peacock, fetched once per title at ingest
+     Apple TV+, Max, Hulu, Peacock, or Paramount+, fetched once per title at ingest
      time (`ingestTitle` in `src/lib/catalog.ts`) and cached on
      `title_availability.deep_link` (migration 0010). Optional and
      server-side only: with no `STREAMING_AVAILABILITY_API_KEY` set, or

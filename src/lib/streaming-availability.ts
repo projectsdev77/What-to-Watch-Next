@@ -7,10 +7,10 @@ import type { MediaType } from "@/lib/tmdb";
 // the getTopShows doc comment in node_modules/streaming-availability's
 // ShowsApi: "Netflix: netflix - Amazon Prime Video: prime - Disney+:
 // disney - Apple TV: apple - Max: hbo" — "hbo" because Max reverted to
-// the HBO Max brand in 2025, see README) plus "hulu"/"peacock" from
-// their OpenAPI spec's examples. Paramount+ is deliberately left out —
-// it already has a confirmed search deep link (platform-links.ts), so
-// there's no reason to spend API budget re-confirming it here.
+// the HBO Max brand in 2025, see README), "hulu"/"peacock" from their
+// OpenAPI spec's examples, and "paramount" from their Countries & Services
+// docs. One lookup returns every service at once, so each mapped service
+// costs no extra API quota.
 const SERVICE_ID_TO_PLATFORM: Partial<Record<string, StreamingPlatform>> = {
   netflix: "Netflix",
   prime: "Prime Video",
@@ -19,6 +19,7 @@ const SERVICE_ID_TO_PLATFORM: Partial<Record<string, StreamingPlatform>> = {
   hbo: "Max",
   hulu: "Hulu",
   peacock: "Peacock",
+  paramount: "Paramount+",
 };
 
 let cachedClient: Client | null | undefined;
