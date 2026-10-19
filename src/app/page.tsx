@@ -129,7 +129,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
                 </span>
               ))}
             </div>
-            <p className="max-w-[44ch] text-[16px] leading-[1.6] text-[var(--cg-text-2)]">{pick.why}</p>
+            {pick.overview && (
+              <p className="line-clamp-4 max-w-[52ch] text-[14.5px] leading-[1.6] text-[var(--cg-text-2)]">
+                {pick.overview}
+              </p>
+            )}
+            <p className="max-w-[44ch] text-[16px] leading-[1.6] font-medium text-[var(--cg-text-1)]">{pick.why}</p>
             <div className="flex flex-wrap gap-[11px] pt-0.5">
               <CgWatchNowButton
                 title={pick.title}
