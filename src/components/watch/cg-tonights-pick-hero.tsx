@@ -5,6 +5,7 @@ import { TMDB_POSTER_BASE_URL } from "@/lib/tmdb";
 import type { RecommendedTitle } from "@/lib/recommendations";
 import { CgWatchNowButton } from "@/components/watch/cg-watch-now-button";
 import { CgFeedbackActions } from "@/components/watch/cg-feedback-actions";
+import { CgTrailerPreview } from "@/components/watch/cg-trailer-preview";
 
 /** Full-screen Tonight's Pick hero: big title, synopsis and actions on the
  * left, a large poster on the right (stacked on mobile, poster first), all
@@ -14,12 +15,14 @@ export function CgTonightsPickHero({
   unrestricted,
   matchingPlatforms,
   redirectTo,
+  trailerKey,
   header,
 }: {
   pick: RecommendedTitle;
   unrestricted: boolean;
   matchingPlatforms: string[];
   redirectTo: string;
+  trailerKey: string | null;
   header: ReactNode;
 }) {
   const genres = pick.genreIds.slice(0, 3).map((id) => genreName(id)).join(", ");
@@ -82,22 +85,40 @@ export function CgTonightsPickHero({
                 platformLinks={pick.platformLinks}
                 fallbackUrl={pick.watchUrl}
               />
+              {trailerKey && (
+                <CgTrailerPreview youtubeKey={trailerKey} title={pick.title} variant="button" className="lg:hidden" />
+              )}
             </div>
             <div>
               <CgFeedbackActions titleId={pick.id} redirectTo={redirectTo} />
             </div>
           </div>
 
-          {pick.posterPath && (
-            <div className="relative aspect-[2/3] w-[62vw] max-w-[300px] shrink-0 overflow-hidden rounded-[var(--cg-r-poster)] shadow-[0_40px_90px_rgba(2,6,14,.8)] lg:w-auto lg:max-w-none lg:h-[min(72vh,640px)]">
-              <Image
-                src={`${TMDB_POSTER_BASE_URL}${pick.posterPath}`}
-                alt={pick.title}
-                fill
-                priority
-                sizes="(min-width: 1024px) 430px, 62vw"
-                className="object-cover"
-              />
+          {(pick.posterPath || trailerKey) && (
+            <div className="relative flex w-full shrink-0 flex-col items-center gap-5 lg:block lg:w-auto">
+              {pick.posterPath && (
+                <div className="relative aspect-[2/3] w-[62vw] max-w-[300px] overflow-hidden rounded-[var(--cg-r-poster)] shadow-[0_40px_90px_rgba(2,6,14,.8)] lg:w-auto lg:max-w-none lg:h-[min(72vh,640px)]">
+                  <Image
+                    src={`${TMDB_POSTER_BASE_URL}${pick.posterPath}`}
+                    alt={pick.title}
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 430px, 62vw"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              {/* Desktop only: overlaps the poster's bottom-left corner,
+                  picture-in-picture style. Phones get a Trailer button in
+                  the actions row instead. */}
+              {trailerKey && (
+                <CgTrailerPreview
+                  youtubeKey={trailerKey}
+                  title={pick.title}
+                  variant="tile"
+                  className={`hidden lg:block ${pick.posterPath ? "lg:absolute lg:-bottom-6 lg:-left-24 lg:w-[300px]" : "lg:w-[420px]"}`}
+                />
+              )}
             </div>
           )}
         </section>

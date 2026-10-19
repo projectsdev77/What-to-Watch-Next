@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { getTonightsPick, type CandidateStatus } from "@/lib/recommendations";
-import { parseMediaType } from "@/lib/tmdb";
+import { getTrailerKey, parseMediaType } from "@/lib/tmdb";
 import { CgNavPill } from "@/components/chrome/cg-nav-pill";
 import { CgMediaTypeTabs } from "@/components/chrome/cg-media-type-tabs";
 import { CgTonightsPickHero } from "@/components/watch/cg-tonights-pick-hero";
@@ -60,6 +60,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   }
 
   const pick = result.pick;
+  const trailerKey = await getTrailerKey(pick.mediaType, pick.tmdbId);
   const matchingPlatforms = result.unrestricted ? [] : pick.platforms;
 
   return (
@@ -68,6 +69,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       unrestricted={result.unrestricted}
       matchingPlatforms={matchingPlatforms}
       redirectTo={redirectTo}
+      trailerKey={trailerKey}
       header={
         <>
           <CgNavPill active="/" />

@@ -154,6 +154,63 @@ export function getWatchProviders(mediaType: MediaType, id: number) {
   return tmdbFetch<TmdbWatchProviders>(`/${mediaType}/${id}/watch/providers`);
 }
 
+export interface TmdbVideo {
+  key: string;
+  site: string;
+  type: string;
+  official: boolean;
+  iso_639_1: string;
+}
+
+/** A title's YouTube trailers/teasers, best first: a trailer over a
+ * teaser, official over fan-uploaded, English over other languages — in
+ * that order of importance. */
+export function rankTrailerKeys(videos: TmdbVideo[]): string[] {
+  const score = (v: TmdbVideo) =>
+    (v.type === "Trailer" ? 4 : 0) + (v.official ? 2 : 0) + (v.iso_639_1 === "en" ? 1 : 0);
+  return videos
+    .filter((v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"))
+    .sort((a, b) => score(b) - score(a))
+    .map((v) => v.key);
+}
+
+/** The best-ranked trailer key, or null when there's none. */
+export function pickTrailerKey(videos: TmdbVideo[]): string | null {
+  return rankTrailerKeys(videos)[0] ?? null;
+}
+
+const MAX_TRAILERS_CHECKED = 3;
+
+/** Whether YouTube allows this video to be embedded on other sites. Its
+ * public oEmbed endpoint answers 401 (embedding disabled) or 404 (removed)
+ * for ones that would show "Video unavailable" in our player. Any other
+ * failure counts as embeddable — this check is only a filter. */
+async function isEmbeddable(youtubeKey: string): Promise<boolean> {
+  try {
+    const url = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${youtubeKey}`)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    return res.status !== 401 && res.status !== 404;
+  } catch {
+    return true;
+  }
+}
+
+/** The title's best embeddable YouTube trailer key, or null if it has none
+ * or the lookup fails — a trailer is a nice-to-have, so a TMDB hiccup
+ * here must never break the page. */
+export async function getTrailerKey(mediaType: MediaType, id: number): Promise<string | null> {
+  try {
+    const { results } = await tmdbFetch<{ results: TmdbVideo[] }>(`/${mediaType}/${id}/videos`);
+    for (const key of rankTrailerKeys(results).slice(0, MAX_TRAILERS_CHECKED)) {
+      if (await isEmbeddable(key)) return key;
+    }
+    return null;
+  } catch (err) {
+    console.error(`Trailer lookup failed for ${mediaType}/${id}:`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 /** Public TMDB "where to watch" page for a title — same shape as the
  * `link` field /watch/providers itself returns (captured as
  * titles.justwatch_link during seeding); this is the fallback for
